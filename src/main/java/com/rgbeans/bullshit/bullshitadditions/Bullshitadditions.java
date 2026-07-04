@@ -1,0 +1,284 @@
+package com.rgbeans.bullshit.bullshitadditions;
+
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scoreboard.Criteria;
+import org.bukkit.scoreboard.DisplaySlot;
+import org.bukkit.scoreboard.Objective;
+import org.bukkit.scoreboard.Scoreboard;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+public final class Bullshitadditions extends JavaPlugin {
+
+    private RecipeGui recipeGui;
+    private final Map<UUID, int[]> lastAmmoCounts = new HashMap<>();
+
+    @Override
+    public void onEnable() {
+        registerRecipes();
+        recipeGui = new RecipeGui(this);
+
+        getServer().getPluginManager().registerEvents(new GunListener(), this);
+        getServer().getPluginManager().registerEvents(new RifleListener(), this);
+        getServer().getPluginManager().registerEvents(new HeavyStickListener(), this);
+        getServer().getPluginManager().registerEvents(new TargetDummyListener(), this);
+        getServer().getPluginManager().registerEvents(new AmmoBoxListener(), this);
+        getServer().getPluginManager().registerEvents(recipeGui, this);
+
+        getServer().getScheduler().runTaskTimer(this, this::updateAmmoScoreboards, 0L, 20L);
+
+        getLogger().info("Bullshit Additions enabled!");
+    }
+
+    @Override
+    public void onDisable() {
+        getLogger().info("Bullshit Additions disabled!");
+    }
+
+    @Override
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        String name = command.getName().toLowerCase();
+
+        if (name.equals("ironbargun")) {
+            return giveItem(sender, Pistol.create(), "Pistol");
+        }
+
+        if (name.equals("pistol")) {
+            return giveItem(sender, Pistol.create(), "Pistol");
+        }
+
+        if (name.equals("targetdummy")) {
+            return giveItem(sender, TargetDummyItem.create(), "Target Dummy");
+        }
+
+        if (name.equals("heavystick")) {
+            return giveItem(sender, HeavyStick.create(), "Heavy Stick");
+        }
+
+        if (name.equals("ammobox")) {
+            return giveItem(sender, AmmoBox.create(), "Ammo Box");
+        }
+
+        if (name.equals("rifle")) {
+            return giveItem(sender, Rifle.create(), "Rifle");
+        }
+
+        if (name.equals("recipes")) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage("Only players can use this command.");
+                return true;
+            }
+            recipeGui.open(player);
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean giveItem(CommandSender sender, ItemStack item, String displayName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("Only players can use this command.");
+            return true;
+        }
+
+        player.getInventory().addItem(item);
+        player.sendMessage("§aHere's your " + displayName + "!");
+        return true;
+    }
+
+    private void registerRecipes() {
+        ItemStack[] pistolIngredients = new ItemStack[9];
+        pistolIngredients[1] = new ItemStack(Material.IRON_NUGGET);
+        pistolIngredients[3] = new ItemStack(Material.IRON_NUGGET);
+        pistolIngredients[4] = new ItemStack(Material.IRON_HOE);
+        pistolIngredients[5] = new ItemStack(Material.IRON_NUGGET);
+        pistolIngredients[7] = new ItemStack(Material.IRON_NUGGET);
+
+        ShapedRecipe pistolRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "pistol"),
+                Pistol.create()
+        );
+        pistolRecipe.shape(" I ", "IHI", " I ");
+        pistolRecipe.setIngredient('I', Material.IRON_NUGGET);
+        pistolRecipe.setIngredient('H', Material.IRON_HOE);
+        getServer().addRecipe(pistolRecipe);
+        RecipeRegistry.register(new RecipeInfo("Pistol", Pistol.create(), pistolIngredients));
+
+        ItemStack[] dummyIngredients = new ItemStack[9];
+        dummyIngredients[1] = new ItemStack(Material.HAY_BLOCK);
+        dummyIngredients[3] = new ItemStack(Material.HAY_BLOCK);
+        dummyIngredients[4] = new ItemStack(Material.TARGET);
+        dummyIngredients[5] = new ItemStack(Material.HAY_BLOCK);
+        dummyIngredients[7] = new ItemStack(Material.HAY_BLOCK);
+
+        ShapedRecipe dummyRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "target_dummy"),
+                TargetDummyItem.create()
+        );
+        dummyRecipe.shape(" H ", "HTH", " H ");
+        dummyRecipe.setIngredient('H', Material.HAY_BLOCK);
+        dummyRecipe.setIngredient('T', Material.TARGET);
+        getServer().addRecipe(dummyRecipe);
+        RecipeRegistry.register(new RecipeInfo("Target Dummy", TargetDummyItem.create(), dummyIngredients));
+
+        ItemStack[] heavyStickIngredients = new ItemStack[9];
+        heavyStickIngredients[1] = new ItemStack(Material.IRON_INGOT);
+        heavyStickIngredients[4] = new ItemStack(Material.IRON_INGOT);
+
+        ShapedRecipe heavyStickRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "heavy_stick"),
+                HeavyStick.create()
+        );
+        heavyStickRecipe.shape("I", "I");
+        heavyStickRecipe.setIngredient('I', Material.IRON_INGOT);
+        getServer().addRecipe(heavyStickRecipe);
+        RecipeRegistry.register(new RecipeInfo("Heavy Stick", HeavyStick.create(), heavyStickIngredients));
+
+        ItemStack stickyPiston1 = new ItemStack(Material.STICKY_PISTON);
+        ShapelessRecipe honeyBottleRecipe = new ShapelessRecipe(
+                new NamespacedKey(this, "sticky_piston_honey_bottle"),
+                stickyPiston1
+        );
+        honeyBottleRecipe.addIngredient(Material.PISTON);
+        honeyBottleRecipe.addIngredient(Material.HONEY_BOTTLE);
+        getServer().addRecipe(honeyBottleRecipe);
+
+        ItemStack[] honeyBottleDisplay = new ItemStack[9];
+        honeyBottleDisplay[0] = new ItemStack(Material.PISTON);
+        honeyBottleDisplay[1] = new ItemStack(Material.HONEY_BOTTLE);
+        RecipeRegistry.register(new RecipeInfo("Sticky Piston - Honey Bottle", stickyPiston1.clone(), honeyBottleDisplay));
+
+        ItemStack stickyPiston4 = new ItemStack(Material.STICKY_PISTON, 4);
+        ShapelessRecipe honeyBlockRecipe = new ShapelessRecipe(
+                new NamespacedKey(this, "sticky_piston_honey_block"),
+                stickyPiston4
+        );
+        honeyBlockRecipe.addIngredient(Material.HONEY_BLOCK);
+        honeyBlockRecipe.addIngredient(4, Material.PISTON);
+        getServer().addRecipe(honeyBlockRecipe);
+
+        ItemStack[] honeyBlockDisplay = new ItemStack[9];
+        honeyBlockDisplay[0] = new ItemStack(Material.HONEY_BLOCK);
+        honeyBlockDisplay[1] = new ItemStack(Material.PISTON);
+        honeyBlockDisplay[2] = new ItemStack(Material.PISTON);
+        honeyBlockDisplay[3] = new ItemStack(Material.PISTON);
+        honeyBlockDisplay[4] = new ItemStack(Material.PISTON);
+        RecipeRegistry.register(new RecipeInfo("Sticky Piston - Honey Block", stickyPiston4.clone(), honeyBlockDisplay));
+
+        ItemStack[] ammoBoxIngredients = new ItemStack[9];
+        ammoBoxIngredients[0] = new ItemStack(Material.IRON_BLOCK);
+        ammoBoxIngredients[1] = new ItemStack(Material.BUNDLE);
+        ammoBoxIngredients[2] = new ItemStack(Material.IRON_BLOCK);
+        ammoBoxIngredients[3] = new ItemStack(Material.IRON_BLOCK);
+        ammoBoxIngredients[4] = new ItemStack(Material.CHEST);
+        ammoBoxIngredients[5] = new ItemStack(Material.IRON_BLOCK);
+        ammoBoxIngredients[6] = new ItemStack(Material.IRON_BLOCK);
+        ammoBoxIngredients[7] = new ItemStack(Material.IRON_BLOCK);
+        ammoBoxIngredients[8] = new ItemStack(Material.IRON_BLOCK);
+
+        ShapedRecipe ammoBoxRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "ammo_box"),
+                AmmoBox.create()
+        );
+        ammoBoxRecipe.shape("IBI", "ICI", "III");
+        ammoBoxRecipe.setIngredient('I', Material.IRON_BLOCK);
+        ammoBoxRecipe.setIngredient('B', Material.BUNDLE);
+        ammoBoxRecipe.setIngredient('C', Material.CHEST);
+        getServer().addRecipe(ammoBoxRecipe);
+        RecipeRegistry.register(new RecipeInfo("Ammo Box", AmmoBox.create(), ammoBoxIngredients));
+
+        ItemStack[] rifleIngredients = new ItemStack[9];
+        rifleIngredients[0] = new ItemStack(Material.IRON_INGOT);
+        rifleIngredients[1] = new ItemStack(Material.IRON_BLOCK);
+        rifleIngredients[2] = new ItemStack(Material.IRON_INGOT);
+        rifleIngredients[3] = new ItemStack(Material.IRON_BLOCK);
+        rifleIngredients[4] = new ItemStack(Material.IRON_HOE);
+        rifleIngredients[5] = new ItemStack(Material.IRON_BLOCK);
+        rifleIngredients[6] = new ItemStack(Material.IRON_INGOT);
+        rifleIngredients[7] = new ItemStack(Material.IRON_BLOCK);
+        rifleIngredients[8] = new ItemStack(Material.IRON_INGOT);
+
+        ShapedRecipe rifleRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "rifle"),
+                Rifle.create()
+        );
+        rifleRecipe.shape("IBI", "BHB", "IBI");
+        rifleRecipe.setIngredient('I', Material.IRON_INGOT);
+        rifleRecipe.setIngredient('B', Material.IRON_BLOCK);
+        rifleRecipe.setIngredient('H', Material.IRON_HOE);
+        getServer().addRecipe(rifleRecipe);
+        RecipeRegistry.register(new RecipeInfo("Rifle", Rifle.create(), rifleIngredients));
+    }
+
+    private void updateAmmoScoreboards() {
+        for (Player player : getServer().getOnlinePlayers()) {
+            ItemStack mainHand = player.getInventory().getItemInMainHand();
+            ItemStack offHand = player.getInventory().getItemInOffHand();
+            boolean holdingGun = Pistol.isGun(mainHand) || Pistol.isGun(offHand)
+                    || Rifle.isRifle(mainHand) || Rifle.isRifle(offHand);
+
+            if (holdingGun) {
+                int iron = countTotalAmmo(player, Material.IRON_NUGGET);
+                int gold = countTotalAmmo(player, Material.GOLD_NUGGET);
+                UUID uuid = player.getUniqueId();
+                int[] last = lastAmmoCounts.get(uuid);
+
+                if (last != null && last[0] == iron && last[1] == gold) continue;
+                lastAmmoCounts.put(uuid, new int[]{iron, gold});
+
+                Scoreboard board = player.getScoreboard();
+                Objective obj = board.getObjective("ammo");
+                if (obj == null) {
+                    board = Bukkit.getScoreboardManager().getNewScoreboard();
+                    obj = board.registerNewObjective("ammo", Criteria.DUMMY, ChatColor.GOLD + "  Ammo  ");
+                    obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+                    player.setScoreboard(board);
+                    last = null;
+                }
+
+                if (last != null) {
+                    board.resetScores(ChatColor.GRAY + "Iron: " + last[0]);
+                    board.resetScores(ChatColor.YELLOW + "Gold: " + last[1]);
+                }
+
+                obj.getScore(ChatColor.GRAY + "Iron: " + iron).setScore(1);
+                obj.getScore(ChatColor.YELLOW + "Gold: " + gold).setScore(0);
+            } else {
+                Scoreboard board = player.getScoreboard();
+                if (board.getObjective("ammo") != null) {
+                    lastAmmoCounts.remove(player.getUniqueId());
+                    player.setScoreboard(Bukkit.getScoreboardManager().getMainScoreboard());
+                }
+            }
+        }
+    }
+
+    private int countTotalAmmo(Player player, Material type) {
+        int count = 0;
+        PlayerInventory inv = player.getInventory();
+        for (int i = 0; i < 36; i++) {
+            ItemStack item = inv.getItem(i);
+            if (item != null && item.getType() == type) {
+                count += item.getAmount();
+            }
+            if (AmmoBox.isAmmoBox(item)) {
+                count += AmmoBox.countAmmo(item, type);
+            }
+        }
+        return count;
+    }
+}

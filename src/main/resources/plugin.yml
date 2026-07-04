@@ -1,0 +1,65 @@
+name: bullshitadditions
+version: '${version}'
+
+main: com.rgbeans.bullshit.bullshitadditions.Bullshitadditions
+bootstrapper: com.rgbeans.bullshit.bullshitadditions.BullshitadditionsBootstrap
+paperPluginLoader: com.rgbeans.bullshit.bullshitadditions.BullshitadditionsLoader
+api-version: '26.1.2'
+load: POSTWORLD
+
+commands:
+  ironbargun:
+    description: Gives you a Pistol
+    usage: /ironbargun
+    permission: bullshitadditions.pistol
+    permission-message: You do not have permission.
+  pistol:
+    description: Gives you a Pistol
+    usage: /pistol
+    permission: bullshitadditions.pistol
+    permission-message: You do not have permission.
+  targetdummy:
+    description: Gives you a Target Dummy item
+    usage: /targetdummy
+    permission: bullshitadditions.targetdummy
+    permission-message: You do not have permission.
+  heavystick:
+    description: Gives you a Heavy Stick
+    usage: /heavystick
+    permission: bullshitadditions.heavystick
+    permission-message: You do not have permission.
+  ammobox:
+    description: Gives you an Ammo Box
+    usage: /ammobox
+    permission: bullshitadditions.ammobox
+    permission-message: You do not have permission.
+  rifle:
+    description: Gives you a Rifle
+    usage: /rifle
+    permission: bullshitadditions.rifle
+    permission-message: You do not have permission.
+  recipes:
+    description: Opens a GUI showing custom recipes
+    usage: /recipes
+    permission: bullshitadditions.recipes
+    permission-message: You do not have permission.
+
+permissions:
+  bullshitadditions.recipes:
+    description: Allows viewing custom recipes
+    default: true
+  bullshitadditions.pistol:
+    description: Allows spawning a Pistol
+    default: op
+  bullshitadditions.targetdummy:
+    description: Allows spawning a Target Dummy
+    default: op
+  bullshitadditions.heavystick:
+    description: Allows spawning a Heavy Stick
+    default: op
+  bullshitadditions.ammobox:
+    description: Allows spawning an Ammo Box
+    default: op
+  bullshitadditions.rifle:
+    description: Allows spawning a Rifle
+    default: op
