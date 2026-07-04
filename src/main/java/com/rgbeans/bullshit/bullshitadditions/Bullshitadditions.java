@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -21,15 +22,24 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public final class Bullshitadditions extends JavaPlugin {
 
     private RecipeGui recipeGui;
+    private PlayerDataManager playerDataManager;
+    private TransmutationTable transmutationTable;
     private final Map<UUID, int[]> lastAmmoCounts = new HashMap<>();
 
     @Override
     public void onEnable() {
         registerRecipes();
+        EMCEngine.init(getDataFolder());
+        EMCEngine.recalculate(getLogger());
+
+        playerDataManager = new PlayerDataManager(this);
+        transmutationTable = new TransmutationTable(this, playerDataManager);
         recipeGui = new RecipeGui(this);
 
         getServer().getPluginManager().registerEvents(new GunListener(), this);
@@ -38,14 +48,18 @@ public final class Bullshitadditions extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TargetDummyListener(), this);
         getServer().getPluginManager().registerEvents(new AmmoBoxListener(), this);
         getServer().getPluginManager().registerEvents(recipeGui, this);
+        getServer().getPluginManager().registerEvents(transmutationTable, this);
+        getServer().getPluginManager().registerEvents(new TransmutationBlock(transmutationTable), this);
 
         getServer().getScheduler().runTaskTimer(this, this::updateAmmoScoreboards, 0L, 20L);
+        getServer().getScheduler().runTaskTimer(this, this::updateEmcTabList, 0L, 100L);
 
         getLogger().info("Bullshit Additions enabled!");
     }
 
     @Override
     public void onDisable() {
+        if (playerDataManager != null) playerDataManager.saveAll();
         getLogger().info("Bullshit Additions disabled!");
     }
 
@@ -86,7 +100,175 @@ public final class Bullshitadditions extends JavaPlugin {
             return true;
         }
 
+        if (name.equals("transmute")) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage("Only players can use this command.");
+                return true;
+            }
+            transmutationTable.open(player);
+            return true;
+        }
+
+        if (name.equals("transmutationtable")) {
+            return giveItem(sender, TransmutationBlock.createItem(), "Transmutation Table");
+        }
+
+        if (name.equals("emc")) {
+            return handleEmc(sender, args);
+        }
+
         return false;
+    }
+
+    @Override
+    public java.util.List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (!command.getName().equalsIgnoreCase("emc")) return super.onTabComplete(sender, command, alias, args);
+
+        if (args.length == 1) {
+            return java.util.List.of("get", "add", "remove", "reload", "list", "listempty", "set", "trace", "missingroots").stream()
+                    .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .toList();
+        }
+        return java.util.List.of();
+    }
+
+    private boolean handleEmc(CommandSender sender, String[] args) {
+        String sub = args.length > 0 ? args[0].toLowerCase() : "";
+
+        switch (sub) {
+            case "get" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage("Only players can use this command.");
+                    return true;
+                }
+                double emc = playerDataManager.get(player.getUniqueId()).emc();
+                sender.sendMessage("§6Your EMC: §f" + EMCEngine.formatEmc(emc));
+                return true;
+            }
+            case "add" -> {
+                if (!sender.isOp()) {
+                    sender.sendMessage("§cYou must be an operator to use this command.");
+                    return true;
+                }
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage("Only players can use this command.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage("§cUsage: /emc add <amount>");
+                    return true;
+                }
+                try {
+                    double amount = Double.parseDouble(args[1]);
+                    playerDataManager.get(player.getUniqueId()).addEmc(amount);
+                    sender.sendMessage("§aAdded " + EMCEngine.formatEmc(amount) + " EMC. Balance: " + EMCEngine.formatEmc(playerDataManager.get(player.getUniqueId()).emc()));
+                } catch (NumberFormatException e) {
+                    sender.sendMessage("§cInvalid number: " + args[1]);
+                }
+                return true;
+            }
+            case "remove" -> {
+                if (!sender.isOp()) {
+                    sender.sendMessage("§cYou must be an operator to use this command.");
+                    return true;
+                }
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage("Only players can use this command.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage("§cUsage: /emc remove <amount>");
+                    return true;
+                }
+                try {
+                    double amount = Double.parseDouble(args[1]);
+                    PlayerData data = playerDataManager.get(player.getUniqueId());
+                    if (!data.spendEmc(amount)) {
+                        sender.sendMessage("§cNot enough EMC! You have " + EMCEngine.formatEmc(data.emc()));
+                        return true;
+                    }
+                    sender.sendMessage("§aRemoved " + EMCEngine.formatEmc(amount) + " EMC. Balance: " + EMCEngine.formatEmc(data.emc()));
+                } catch (NumberFormatException e) {
+                    sender.sendMessage("§cInvalid number: " + args[1]);
+                }
+                return true;
+            }
+            case "reload" -> {
+                EMCEngine.recalculate(getLogger());
+                sender.sendMessage("§aEMC reloaded. " + EMCEngine.size() + " items mapped.");
+                return true;
+            }
+            case "list" -> {
+                java.util.Map<Material, Long> vals = EMCEngine.getAll();
+                StringBuilder sb = new StringBuilder("=== EMC Values (").append(vals.size()).append(" items) ===\n");
+                vals.entrySet().stream().sorted(Map.Entry.comparingByValue())
+                        .forEach(e -> sb.append(e.getKey().name()).append(" = ").append(e.getValue()).append("\n"));
+                writeToFile("emc_list.txt", sb.toString());
+                sender.sendMessage("§aWrote " + vals.size() + " values to emc_list.txt");
+                return true;
+            }
+            case "trace" -> {
+                if (args.length < 2) {
+                    sender.sendMessage("§cUsage: /emc trace <material>");
+                    return true;
+                }
+                Material mat = Material.getMaterial(args[1].toUpperCase());
+                if (mat == null) {
+                    sender.sendMessage("§cUnknown material: " + args[1]);
+                    return true;
+                }
+                String result = EMCEngine.traceRecipes(mat);
+                sender.sendMessage(result);
+                return true;
+            }
+            case "missingroots" -> {
+                String result = EMCEngine.traceMissingRoots();
+                writeToFile("emc_missingroots.txt", result);
+                sender.sendMessage("§aWrote missing-item root analysis to emc_missingroots.txt");
+                return true;
+            }
+            case "listempty" -> {
+                java.util.List<Material> empty = new java.util.ArrayList<>();
+                for (Material mat : Material.values()) {
+                    if (!mat.isItem() || EMCEngine.has(mat)) continue;
+                    String name = mat.name();
+                    if (name.contains("SPAWN_EGG") || name.contains("POTTERY_SHERD") || name.contains("BANNER_PATTERN")) continue;
+                    empty.add(mat);
+                }
+                StringBuilder sb = new StringBuilder("=== Missing EMC (").append(empty.size()).append(" items) ===\n");
+                empty.forEach(m -> sb.append(m.name()).append("\n"));
+                writeToFile("emc_listempty.txt", sb.toString());
+                sender.sendMessage("§aWrote " + empty.size() + " items to emc_listempty.txt");
+                return true;
+            }
+            case "set" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage("Only players can use this command.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage("§cUsage: /emc set <value>");
+                    return true;
+                }
+                ItemStack held = player.getInventory().getItemInMainHand();
+                if (held.getType().isAir()) {
+                    sender.sendMessage("§cYou must hold an item in your hand.");
+                    return true;
+                }
+                try {
+                    long value = Long.parseLong(args[1]);
+                    EMCEngine.addBaseValue(held.getType(), value);
+                    sender.sendMessage("§aSet " + held.getType().name() + " base EMC = " + value + ". Run /emc reload.");
+                } catch (NumberFormatException e) {
+                    sender.sendMessage("§cInvalid number: " + args[1]);
+                }
+                return true;
+            }
+            default -> {
+                sender.sendMessage("§cUse /emc get | add <n> | remove <n> | reload | list | listempty | set <value> | trace <mat> | missingroots");
+                return true;
+            }
+        }
     }
 
     private boolean giveItem(CommandSender sender, ItemStack item, String displayName) {
@@ -222,6 +404,28 @@ public final class Bullshitadditions extends JavaPlugin {
         rifleRecipe.setIngredient('H', Material.IRON_HOE);
         getServer().addRecipe(rifleRecipe);
         RecipeRegistry.register(new RecipeInfo("Rifle", Rifle.create(), rifleIngredients));
+
+        ShapedRecipe transmutationRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "transmutation_table"),
+                TransmutationBlock.createItem()
+        );
+        transmutationRecipe.shape("NRN", "RSR", "NRN");
+        transmutationRecipe.setIngredient('N', Material.NETHERITE_INGOT);
+        transmutationRecipe.setIngredient('R', Material.REDSTONE);
+        transmutationRecipe.setIngredient('S', Material.POLISHED_BLACKSTONE_SLAB);
+        getServer().addRecipe(transmutationRecipe);
+
+        ItemStack[] transIngredients = new ItemStack[9];
+        transIngredients[0] = new ItemStack(Material.NETHERITE_INGOT);
+        transIngredients[2] = new ItemStack(Material.NETHERITE_INGOT);
+        transIngredients[4] = new ItemStack(Material.POLISHED_BLACKSTONE_SLAB);
+        transIngredients[6] = new ItemStack(Material.NETHERITE_INGOT);
+        transIngredients[8] = new ItemStack(Material.NETHERITE_INGOT);
+        transIngredients[1] = new ItemStack(Material.REDSTONE);
+        transIngredients[3] = new ItemStack(Material.REDSTONE);
+        transIngredients[5] = new ItemStack(Material.REDSTONE);
+        transIngredients[7] = new ItemStack(Material.REDSTONE);
+        RecipeRegistry.register(new RecipeInfo("Transmutation Table", TransmutationBlock.createItem(), transIngredients));
     }
 
     private void updateAmmoScoreboards() {
@@ -280,5 +484,22 @@ public final class Bullshitadditions extends JavaPlugin {
             }
         }
         return count;
+    }
+
+    private void updateEmcTabList() {
+        for (Player player : getServer().getOnlinePlayers()) {
+            double emc = playerDataManager.get(player.getUniqueId()).emc();
+            player.setPlayerListHeader(ChatColor.GOLD + "EMC: " + ChatColor.WHITE + EMCEngine.formatEmc(emc) + "\n");
+        }
+    }
+
+    private void writeToFile(String filename, String content) {
+        java.io.File file = new java.io.File(getDataFolder(), filename);
+        file.getParentFile().mkdirs();
+        try (FileWriter fw = new FileWriter(file)) {
+            fw.write(content);
+        } catch (IOException e) {
+            getLogger().warning("Failed to write " + filename + ": " + e.getMessage());
+        }
     }
 }

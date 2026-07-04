@@ -38,6 +38,21 @@ commands:
     usage: /rifle
     permission: bullshitadditions.rifle
     permission-message: You do not have permission.
+  transmute:
+    description: Opens the Transmutation Table GUI
+    usage: /transmute
+    permission: bullshitadditions.transmute
+    permission-message: You do not have permission.
+  transmutationtable:
+    description: Gives you a Transmutation Table item
+    usage: /transmutationtable
+    permission: bullshitadditions.transmutationtable
+    permission-message: You do not have permission.
+  emc:
+    description: Shows your EMC or reloads EMC values
+    usage: /emc [reload]
+    permission: bullshitadditions.emc
+    permission-message: You do not have permission.
   recipes:
     description: Opens a GUI showing custom recipes
     usage: /recipes
@@ -63,3 +78,12 @@ permissions:
   bullshitadditions.rifle:
     description: Allows spawning a Rifle
     default: op
+  bullshitadditions.transmute:
+    description: Allows opening the Transmutation Table GUI
+    default: true
+  bullshitadditions.transmutationtable:
+    description: Allows spawning a Transmutation Table item
+    default: op
+  bullshitadditions.emc:
+    description: Allows checking EMC balance and reloading EMC values
+    default: true
