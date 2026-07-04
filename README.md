@@ -6,19 +6,6 @@ A PaperMC plugin adding an EMC (Energy-Matter Currency) system, a transmutation 
 
 Every item has an EMC value representing its material worth. Over 300 items have hand-tuned base values, and thousands more are auto-calculated from crafting/furnace/smithing/stonecutting recipes via dependency propagation.
 
-### EMC Commands
-| Command | Permission | Description |
-|---|---|---|
-| `/emc get` | `bullshitadditions.emc` | Show your EMC balance |
-| `/emc add <amount>` | OP | Add EMC to yourself |
-| `/emc remove <amount>` | OP | Remove EMC from yourself |
-| `/emc reload` | `bullshitadditions.emc` | Recalculate all EMC values from server recipes |
-| `/emc list` | `bullshitadditions.emc` | Write all mapped EMC values to `emc_list.txt` |
-| `/emc listempty` | `bullshitadditions.emc` | Write all unmapped items to `emc_listempty.txt` |
-| `/emc set <value>` | `bullshitadditions.emc` | Hold an item and set its base EMC (logged to `emc_set_log.txt`) |
-| `/emc trace <material>` | `bullshitadditions.emc` | Show recipe chain for an item |
-| `/emc missingroots` | `bullshitadditions.emc` | Analyze missing items, write root analysis to `emc_missingroots.txt` |
-
 ### Transmutation Table
 A GUI for converting items to/from EMC. Right-click the placed table or use `/transmute`.
 - **Left-click**: Buy 1 of the selected item with EMC
@@ -80,32 +67,14 @@ Placable item that spawns an invincible armor stand with a target block head and
 | `/ammobox` | `bullshitadditions.ammobox` | OP |
 | `/targetdummy` | `bullshitadditions.targetdummy` | OP |
 
-### Recipes
-#### Custom
-- **Transmutation Table**: 4 netherite ingots (corners) + 4 redstone (edges) + polished blackstone slab (center)
-- **Sticky Piston (Honey Bottle)**: 1 piston + 1 honey bottle (shapeless)
-- **Sticky Piston (Honey Block)**: 1 honey block + 4 pistons (shapeless)
-
 ## Ammo Scoreboard
 While holding a Pistol or Rifle, a sidebar displays live counts of iron and gold nuggets across your inventory and ammo boxes.
 
 ## Recipe GUI
 `/recipes` opens a double-chest overview of all custom items. Click any item to see its recipe in a scrollable detail view. A crafting table icon returns to the overview.
 
-## Tests
-```bash
-./gradlew test
-```
-Verifies EMC recipe propagation with 16 unit tests. Prints full EMC value report to stdout.
-
 ## Permissions
 All permissions work with LuckPerms. Grant all with `bullshitadditions.*`.
-
-## Building
-```bash
-./gradlew build
-```
-The plugin JAR will be in `build/libs/`.
 
 ## Requirements
 - PaperMC 1.21.4+
