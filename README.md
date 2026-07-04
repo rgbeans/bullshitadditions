@@ -25,7 +25,7 @@ A GUI for converting items to/from EMC. Right-click the placed table or use `/tr
 - **Right-click**: Buy 64
 - **Shift-right-click**: Burn 64 of held item for EMC
 - **Recipe**: 4 netherite ingots (corners), 4 redstone (edges), polished blackstone slab (center)
-- **Commands**: `/transmute` (permission: `bullshitadditions.transmute`, default: everyone), `/transmutationtable` (gives item, OP only)
+- **Commands**: `/transmute` (permission: `bullshitadditions.transmute`, default: op), `/transmutationtable` (gives item, OP only)
 
 ### Tab List
 Your EMC is displayed at the top of the tab list. Values above 1 billion are abbreviated (e.g. `1.2e9`).
@@ -71,7 +71,7 @@ Placable item that spawns an invincible armor stand with a target block head and
 | `/emc missingroots` | `bullshitadditions.emc` | OP |
 | `/emc add <amount>` | OP | OP |
 | `/emc remove <amount>` | OP | OP |
-| `/transmute` | `bullshitadditions.transmute` | Everyone |
+| `/transmute` | `bullshitadditions.transmute` | OP |
 | `/transmutationtable` | `bullshitadditions.transmutationtable` | OP |
 | `/recipes` | `bullshitadditions.recipes` | Everyone |
 | `/pistol`, `/ironbargun` | `bullshitadditions.pistol` | OP |

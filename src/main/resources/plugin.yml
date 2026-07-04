@@ -80,7 +80,7 @@ permissions:
     default: op
   bullshitadditions.transmute:
     description: Allows opening the Transmutation Table GUI
-    default: true
+    default: op
   bullshitadditions.transmutationtable:
     description: Allows spawning a Transmutation Table item
     default: op
