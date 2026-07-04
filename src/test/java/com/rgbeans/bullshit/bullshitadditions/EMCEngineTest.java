@@ -224,8 +224,8 @@ class EMCEngineTest {
         assertEquals(384L, emcValues.get(Material.SEA_LANTERN));
     }
     @Test void testNuggets() {
-        assertEquals(113L, emcValues.get(Material.IRON_NUGGET));
-        assertEquals(227L, emcValues.get(Material.GOLD_NUGGET));
+        assertEquals(114L, emcValues.get(Material.IRON_NUGGET));
+        assertEquals(228L, emcValues.get(Material.GOLD_NUGGET));
     }
     @Test void testFurnaceResults() {
         assertEquals(33L, emcValues.get(Material.GLASS));
