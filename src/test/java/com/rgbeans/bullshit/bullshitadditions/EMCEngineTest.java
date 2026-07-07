@@ -198,11 +198,11 @@ class EMCEngineTest {
         assertEquals(8L, emcValues.get(Material.FURNACE));
         assertEquals(8224L, emcValues.get(Material.CLOCK));
         assertEquals(4128L, emcValues.get(Material.COMPASS));
-        assertEquals(9L, emcValues.get(Material.LADDER));
-        assertEquals(17L, emcValues.get(Material.OAK_SIGN));
+        assertEquals(10L, emcValues.get(Material.LADDER));
+        assertEquals(18L, emcValues.get(Material.OAK_SIGN));
         assertEquals(16L, emcValues.get(Material.OAK_DOOR));
         assertEquals(24L, emcValues.get(Material.OAK_TRAPDOOR));
-        assertEquals(13L, emcValues.get(Material.OAK_FENCE));
+        assertEquals(14L, emcValues.get(Material.OAK_FENCE));
         assertEquals(32L, emcValues.get(Material.OAK_FENCE_GATE));
         assertEquals(384L, emcValues.get(Material.IRON_BARS));
     }

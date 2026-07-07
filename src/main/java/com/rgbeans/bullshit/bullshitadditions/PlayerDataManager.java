@@ -38,6 +38,9 @@ public final class PlayerDataManager {
         }
         config.set("learned", learned);
 
+        List<String> learnedCustom = new ArrayList<>(data.learnedCustom());
+        config.set("learnedCustom", learnedCustom);
+
         try {
             config.save(file);
         } catch (IOException e) {
@@ -71,6 +74,10 @@ public final class PlayerDataManager {
         for (String name : config.getStringList("learned")) {
             Material mat = Material.getMaterial(name);
             if (mat != null) data.learn(mat);
+        }
+
+        for (String key : config.getStringList("learnedCustom")) {
+            data.learnCustom(key);
         }
 
         return data;

@@ -24,6 +24,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -42,7 +43,7 @@ public final class EnergyCondenser implements Listener {
     static final NamespacedKey BLOCK_KEY = new NamespacedKey("bullshitadditions", "energy_condenser");
     private static final NamespacedKey TARGET_KEY = new NamespacedKey("bullshitadditions", "condenser_target");
     private static final NamespacedKey EMC_KEY = new NamespacedKey("bullshitadditions", "condenser_emc");
-    private static final NamespacedKey ITEM_KEY = new NamespacedKey("bullshitadditions", "energy_condenser_item");
+    static final NamespacedKey ITEM_KEY = new NamespacedKey("bullshitadditions", "energy_condenser_item");
 
     static final long MAX_EMC = Long.MAX_VALUE;
     static final long EMC_VALUE = 42_011L;
@@ -262,6 +263,8 @@ public final class EnergyCondenser implements Listener {
                 ChatColor.GRAY + "Works with hoppers for automation",
                 ChatColor.DARK_GRAY + "Own EMC: " + EMCEngine.formatEmc(EMC_VALUE)
         ));
+        meta.setEnchantmentGlintOverride(true);
+        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         meta.getPersistentDataContainer().set(ITEM_KEY, PersistentDataType.BOOLEAN, true);
         item.setItemMeta(meta);
         return item;

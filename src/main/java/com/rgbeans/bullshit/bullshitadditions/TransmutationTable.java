@@ -3,6 +3,7 @@ package com.rgbeans.bullshit.bullshitadditions;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -10,16 +11,47 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
+import java.util.function.Supplier;
 
 public final class TransmutationTable implements Listener {
+
+    public record TransmutableItem(
+            String key,
+            Material material,
+            Supplier<ItemStack> creator,
+            NamespacedKey pdcKey,
+            long emc
+    ) {
+        boolean matches(ItemStack item) {
+            if (item == null || item.getType() != material || !item.hasItemMeta()) return false;
+            return item.getItemMeta().getPersistentDataContainer().has(pdcKey, PersistentDataType.BOOLEAN);
+        }
+    }
+
+    private static final Map<String, TransmutableItem> TRANSMUTABLE = new LinkedHashMap<>();
+
+    public static void registerTransmutable(TransmutableItem item) {
+        TRANSMUTABLE.put(item.key(), item);
+    }
+
+    public static TransmutableItem getTransmutable(String key) {
+        return TRANSMUTABLE.get(key);
+    }
+
+    private static TransmutableItem matchTransmutable(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return null;
+        for (TransmutableItem ti : TRANSMUTABLE.values()) {
+            if (ti.matches(item)) return ti;
+        }
+        return null;
+    }
 
     private static final int ROWS = 6;
     private static final int SIZE = ROWS * 9;
@@ -58,16 +90,28 @@ public final class TransmutationTable implements Listener {
         open(player, 0);
     }
 
+    private record DisplayEntry(ItemStack stack, long emc, String customKey) {}
+
     private void open(Player player, int page) {
         PlayerData data = dataManager.get(player.getUniqueId());
 
-        List<Material> items = data.learned().stream()
-                .filter(m -> m != null && m.isItem() && m != Material.AIR)
-                .filter(EMCEngine::has)
-                .sorted(Comparator.comparingLong(EMCEngine::get))
-                .toList();
+        List<DisplayEntry> entries = new ArrayList<>();
 
-        int totalPages = Math.max(1, (items.size() + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
+        for (Material mat : data.learned()) {
+            if (mat != null && mat.isItem() && mat != Material.AIR && EMCEngine.has(mat)) {
+                entries.add(new DisplayEntry(new ItemStack(mat), EMCEngine.get(mat), null));
+            }
+        }
+
+        for (TransmutableItem ti : TRANSMUTABLE.values()) {
+            if (data.learnedCustom().contains(ti.key())) {
+                entries.add(new DisplayEntry(ti.creator().get(), ti.emc(), ti.key()));
+            }
+        }
+
+        entries.sort(Comparator.comparingLong(DisplayEntry::emc));
+
+        int totalPages = Math.max(1, (entries.size() + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE);
         if (page < 0) page = 0;
         if (page >= totalPages) page = totalPages - 1;
         playerPages.put(player.getUniqueId(), page);
@@ -79,14 +123,13 @@ public final class TransmutationTable implements Listener {
         }
 
         int start = page * ITEMS_PER_PAGE;
-        for (int i = 0; i < ITEMS_PER_PAGE && (start + i) < items.size(); i++) {
-            Material mat = items.get(start + i);
-            long emc = EMCEngine.get(mat);
-            ItemStack display = new ItemStack(mat);
+        for (int i = 0; i < ITEMS_PER_PAGE && (start + i) < entries.size(); i++) {
+            DisplayEntry entry = entries.get(start + i);
+            ItemStack display = entry.stack().clone();
             ItemMeta meta = display.getItemMeta();
             if (meta == null) continue;
             meta.setLore(List.of(
-                    ChatColor.GRAY + "EMC: " + EMCEngine.formatEmc(emc),
+                    ChatColor.GRAY + "EMC: " + EMCEngine.formatEmc(entry.emc()),
                     ChatColor.DARK_GRAY + "Left-click: buy 1",
                     ChatColor.DARK_GRAY + "Shift-click: buy stack"
             ));
@@ -154,20 +197,26 @@ public final class TransmutationTable implements Listener {
     @EventHandler
     public void onPickup(EntityPickupItemEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
-        Material mat = event.getItem().getItemStack().getType();
-        learn(player, mat);
+        learnItem(player, event.getItem().getItemStack());
     }
 
     @EventHandler
     public void onCraft(CraftItemEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        Material mat = event.getRecipe().getResult().getType();
-        learn(player, mat);
+        learnItem(player, event.getRecipe().getResult());
     }
 
-    private void learn(Player player, Material mat) {
-        if (mat == null || !mat.isItem() || mat == Material.AIR) return;
-        if (EMCEngine.has(mat)) {
+    private void learnItem(Player player, ItemStack item) {
+        if (item == null || item.isEmpty()) return;
+
+        TransmutableItem custom = matchTransmutable(item);
+        if (custom != null) {
+            dataManager.get(player.getUniqueId()).learnCustom(custom.key());
+            return;
+        }
+
+        Material mat = item.getType();
+        if (mat != null && mat.isItem() && mat != Material.AIR && EMCEngine.has(mat)) {
             dataManager.get(player.getUniqueId()).learn(mat);
         }
     }
@@ -175,6 +224,21 @@ public final class TransmutationTable implements Listener {
     private void handleFurnace(InventoryClickEvent event, Player player) {
         ItemStack cursor = event.getCursor();
         if (cursor == null || cursor.isEmpty()) return;
+
+        TransmutableItem custom = matchTransmutable(cursor);
+        if (custom != null) {
+            PlayerData data = dataManager.get(player.getUniqueId());
+            int amount = cursor.getAmount();
+            long earned = custom.emc() * amount;
+            data.learnCustom(custom.key());
+            data.addEmc(earned);
+            event.setCursor(null);
+
+            player.playSound(player.getLocation(), Sound.BLOCK_FURNACE_FIRE_CRACKLE, 0.5f, 1.0f);
+            player.sendActionBar(ChatColor.GREEN + "+" + EMCEngine.formatEmc(earned) + " EMC");
+            refresh(player);
+            return;
+        }
 
         Material mat = cursor.getType();
         if (hasCustomMeta(cursor)) {
@@ -201,6 +265,21 @@ public final class TransmutationTable implements Listener {
     }
 
     private void burnStack(Player player, ItemStack stack) {
+        TransmutableItem custom = matchTransmutable(stack);
+        if (custom != null) {
+            PlayerData data = dataManager.get(player.getUniqueId());
+            int amount = stack.getAmount();
+            long earned = custom.emc() * amount;
+            data.learnCustom(custom.key());
+            data.addEmc(earned);
+            stack.setAmount(0);
+
+            player.playSound(player.getLocation(), Sound.BLOCK_FURNACE_FIRE_CRACKLE, 0.5f, 1.0f);
+            player.sendActionBar(ChatColor.GREEN + "+" + EMCEngine.formatEmc(earned) + " EMC");
+            refresh(player);
+            return;
+        }
+
         Material mat = stack.getType();
         if (hasCustomMeta(stack)) {
             player.sendActionBar(ChatColor.RED + "Renamed or custom items cannot be burned!");
@@ -228,6 +307,12 @@ public final class TransmutationTable implements Listener {
         ItemStack clicked = event.getView().getTopInventory().getItem(slot);
         if (clicked == null || clicked.isEmpty()) return;
 
+        TransmutableItem custom = matchTransmutable(clicked);
+        if (custom != null) {
+            buyCustom(player, custom, event.isShiftClick());
+            return;
+        }
+
         Material mat = clicked.getType();
         Long emcValue = EMCEngine.get(mat);
         if (emcValue == null) return;
@@ -252,6 +337,40 @@ public final class TransmutationTable implements Listener {
         }
 
         ItemStack toGive = new ItemStack(mat, amount);
+        HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(toGive);
+        if (!leftover.isEmpty()) {
+            data.addEmc(cost);
+            player.sendActionBar(ChatColor.RED + "Inventory full!");
+            return;
+        }
+
+        player.sendActionBar(ChatColor.GREEN + "-" + EMCEngine.formatEmc(cost) + " EMC");
+        refresh(player);
+    }
+
+    private void buyCustom(Player player, TransmutableItem custom, boolean shiftClick) {
+        PlayerData data = dataManager.get(player.getUniqueId());
+        long emcValue = custom.emc();
+        int amount = 1;
+
+        if (shiftClick) {
+            int maxStack = custom.material().getMaxStackSize();
+            long affordable = (long) (data.emc() / emcValue);
+            amount = (int) Math.min(maxStack, Math.min(affordable, Integer.MAX_VALUE));
+            if (amount == 0) {
+                player.sendActionBar(ChatColor.RED + "Not enough EMC!");
+                return;
+            }
+        }
+
+        long cost = emcValue * amount;
+        if (!data.spendEmc(cost)) {
+            player.sendActionBar(ChatColor.RED + "Not enough EMC!");
+            return;
+        }
+
+        ItemStack toGive = custom.creator().get();
+        toGive.setAmount(amount);
         HashMap<Integer, ItemStack> leftover = player.getInventory().addItem(toGive);
         if (!leftover.isEmpty()) {
             data.addEmc(cost);
