@@ -362,6 +362,8 @@ public final class EMCEngine {
     }
 
     public static String formatEmc(double emc) {
+        if (Double.isNaN(emc)) return "0";
+        if (Double.isInfinite(emc)) return "0";
         if (emc < 1_000_000_000L) {
             return String.format("%,.0f", emc);
         }

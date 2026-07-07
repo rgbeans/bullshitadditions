@@ -30,6 +30,7 @@ public final class Bullshitadditions extends JavaPlugin {
     private RecipeGui recipeGui;
     private PlayerDataManager playerDataManager;
     private TransmutationTable transmutationTable;
+    private EnergyCondenser energyCondenser;
     private final Map<UUID, int[]> lastAmmoCounts = new HashMap<>();
 
     @Override
@@ -41,6 +42,7 @@ public final class Bullshitadditions extends JavaPlugin {
         playerDataManager = new PlayerDataManager(this);
         transmutationTable = new TransmutationTable(this, playerDataManager);
         recipeGui = new RecipeGui(this);
+        energyCondenser = new EnergyCondenser(this);
 
         getServer().getPluginManager().registerEvents(new GunListener(), this);
         getServer().getPluginManager().registerEvents(new RifleListener(), this);
@@ -50,6 +52,9 @@ public final class Bullshitadditions extends JavaPlugin {
         getServer().getPluginManager().registerEvents(recipeGui, this);
         getServer().getPluginManager().registerEvents(transmutationTable, this);
         getServer().getPluginManager().registerEvents(new TransmutationBlock(transmutationTable), this);
+        getServer().getPluginManager().registerEvents(energyCondenser, this);
+
+        energyCondenser.startProcessing();
 
         getServer().getScheduler().runTaskTimer(this, this::updateAmmoScoreboards, 0L, 20L);
         getServer().getScheduler().runTaskTimer(this, this::updateEmcTabList, 0L, 100L);
@@ -111,6 +116,10 @@ public final class Bullshitadditions extends JavaPlugin {
 
         if (name.equals("transmutationtable")) {
             return giveItem(sender, TransmutationBlock.createItem(), "Transmutation Table");
+        }
+
+        if (name.equals("energycondenser")) {
+            return giveItem(sender, EnergyCondenser.createItem(), "Energy Condenser");
         }
 
         if (name.equals("emc")) {
@@ -426,6 +435,28 @@ public final class Bullshitadditions extends JavaPlugin {
         transIngredients[5] = new ItemStack(Material.REDSTONE);
         transIngredients[7] = new ItemStack(Material.REDSTONE);
         RecipeRegistry.register(new RecipeInfo("Transmutation Table", TransmutationBlock.createItem(), transIngredients));
+
+        ShapedRecipe condenserRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "energy_condenser"),
+                EnergyCondenser.createItem()
+        );
+        condenserRecipe.shape("ODO", "DTD", "ODO");
+        condenserRecipe.setIngredient('O', Material.OBSIDIAN);
+        condenserRecipe.setIngredient('D', Material.DIAMOND);
+        condenserRecipe.setIngredient('T', Material.ENDER_CHEST);
+        getServer().addRecipe(condenserRecipe);
+
+        ItemStack[] condenserIngredients = new ItemStack[9];
+        condenserIngredients[0] = new ItemStack(Material.OBSIDIAN);
+        condenserIngredients[1] = new ItemStack(Material.DIAMOND);
+        condenserIngredients[2] = new ItemStack(Material.OBSIDIAN);
+        condenserIngredients[3] = new ItemStack(Material.DIAMOND);
+        condenserIngredients[4] = new ItemStack(Material.ENDER_CHEST);
+        condenserIngredients[5] = new ItemStack(Material.DIAMOND);
+        condenserIngredients[6] = new ItemStack(Material.OBSIDIAN);
+        condenserIngredients[7] = new ItemStack(Material.DIAMOND);
+        condenserIngredients[8] = new ItemStack(Material.OBSIDIAN);
+        RecipeRegistry.register(new RecipeInfo("Energy Condenser", EnergyCondenser.createItem(), condenserIngredients));
     }
 
     private void updateAmmoScoreboards() {
