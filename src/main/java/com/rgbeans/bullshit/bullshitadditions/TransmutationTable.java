@@ -62,6 +62,7 @@ public final class TransmutationTable implements Listener {
         PlayerData data = dataManager.get(player.getUniqueId());
 
         List<Material> items = data.learned().stream()
+                .filter(m -> m != null && m.isItem() && m != Material.AIR)
                 .filter(EMCEngine::has)
                 .sorted(Comparator.comparingLong(EMCEngine::get))
                 .toList();
@@ -83,6 +84,7 @@ public final class TransmutationTable implements Listener {
             long emc = EMCEngine.get(mat);
             ItemStack display = new ItemStack(mat);
             ItemMeta meta = display.getItemMeta();
+            if (meta == null) continue;
             meta.setLore(List.of(
                     ChatColor.GRAY + "EMC: " + EMCEngine.formatEmc(emc),
                     ChatColor.DARK_GRAY + "Left-click: buy 1",
@@ -164,6 +166,7 @@ public final class TransmutationTable implements Listener {
     }
 
     private void learn(Player player, Material mat) {
+        if (mat == null || !mat.isItem() || mat == Material.AIR) return;
         if (EMCEngine.has(mat)) {
             dataManager.get(player.getUniqueId()).learn(mat);
         }

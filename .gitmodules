@@ -1,0 +1,3 @@
+[submodule "paper-docs"]
+	path = paper-docs
+	url = https://github.com/PaperMC/docs.git

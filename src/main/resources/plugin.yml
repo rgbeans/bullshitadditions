@@ -58,6 +58,11 @@ commands:
     usage: /recipes
     permission: bullshitadditions.recipes
     permission-message: You do not have permission.
+  energycondenser:
+    description: Gives you an Energy Condenser item
+    usage: /energycondenser
+    permission: bullshitadditions.energycondenser
+    permission-message: You do not have permission.
 
 permissions:
   bullshitadditions.recipes:
@@ -87,3 +92,6 @@ permissions:
   bullshitadditions.emc:
     description: Allows checking EMC balance and reloading EMC values
     default: true
+  bullshitadditions.energycondenser:
+    description: Allows spawning an Energy Condenser item
+    default: op

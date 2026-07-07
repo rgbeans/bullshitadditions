@@ -62,6 +62,10 @@ public final class PlayerDataManager {
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
         double emc = config.getDouble("emc", 0);
+        if (Double.isNaN(emc) || Double.isInfinite(emc)) {
+            plugin.getLogger().warning("Corrupted EMC (" + emc + ") for " + uuid + " — resetting to 0.");
+            emc = 0;
+        }
         PlayerData data = new PlayerData(emc);
 
         for (String name : config.getStringList("learned")) {

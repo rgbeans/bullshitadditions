@@ -19,7 +19,9 @@ public final class PlayerData {
     }
 
     public void addEmc(double amount) {
+        if (Double.isNaN(amount) || Double.isInfinite(amount)) return;
         this.emc += amount;
+        if (Double.isNaN(this.emc) || Double.isInfinite(this.emc)) this.emc = 0;
     }
 
     public boolean spendEmc(double amount) {
