@@ -39,6 +39,8 @@ public final class Bullshitadditions extends JavaPlugin {
         EMCEngine.init(getDataFolder());
         EMCEngine.recalculate(getLogger());
 
+        registerTransmutableItems();
+
         playerDataManager = new PlayerDataManager(this);
         transmutationTable = new TransmutationTable(this, playerDataManager);
         recipeGui = new RecipeGui(this);
@@ -120,6 +122,10 @@ public final class Bullshitadditions extends JavaPlugin {
 
         if (name.equals("energycondenser")) {
             return giveItem(sender, EnergyCondenser.createItem(), "Energy Condenser");
+        }
+
+        if (name.equals("graymatter")) {
+            return giveItem(sender, GrayMatter.create(), "Gray Matter");
         }
 
         if (name.equals("emc")) {
@@ -457,6 +463,81 @@ public final class Bullshitadditions extends JavaPlugin {
         condenserIngredients[7] = new ItemStack(Material.DIAMOND);
         condenserIngredients[8] = new ItemStack(Material.OBSIDIAN);
         RecipeRegistry.register(new RecipeInfo("Energy Condenser", EnergyCondenser.createItem(), condenserIngredients));
+
+        ShapedRecipe grayMatterRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "gray_matter"),
+                GrayMatter.create()
+        );
+        grayMatterRecipe.shape("NNN", "NSN", "NNN");
+        grayMatterRecipe.setIngredient('N', Material.NETHERITE_BLOCK);
+        grayMatterRecipe.setIngredient('S', Material.NETHER_STAR);
+        getServer().addRecipe(grayMatterRecipe);
+
+        ItemStack[] grayMatterIngredients = new ItemStack[9];
+        for (int i = 0; i < 9; i++) {
+            grayMatterIngredients[i] = (i == 4)
+                    ? new ItemStack(Material.NETHER_STAR)
+                    : new ItemStack(Material.NETHERITE_BLOCK);
+        }
+        RecipeRegistry.register(new RecipeInfo("Gray Matter", GrayMatter.create(), grayMatterIngredients));
+    }
+
+    private void registerTransmutableItems() {
+        TransmutationTable.registerTransmutable(new TransmutationTable.TransmutableItem(
+                "energy_condenser",
+                Material.BARREL,
+                EnergyCondenser::createItem,
+                EnergyCondenser.ITEM_KEY,
+                EnergyCondenser.EMC_VALUE
+        ));
+
+        long ttEmc = EMCEngine.get(Material.NETHERITE_INGOT) * 4
+                + EMCEngine.get(Material.REDSTONE) * 4
+                + EMCEngine.get(Material.POLISHED_BLACKSTONE_SLAB);
+        TransmutationTable.registerTransmutable(new TransmutationTable.TransmutableItem(
+                "transmutation_table",
+                Material.PLAYER_HEAD,
+                TransmutationBlock::createItem,
+                TransmutationBlock.KEY,
+                ttEmc
+        ));
+
+        long grayMatterEmc = EMCEngine.get(Material.NETHERITE_BLOCK) * 8
+                + EMCEngine.get(Material.NETHER_STAR);
+        TransmutationTable.registerTransmutable(new TransmutationTable.TransmutableItem(
+                "gray_matter",
+                Material.CLAY_BALL,
+                GrayMatter::create,
+                GrayMatter.KEY,
+                grayMatterEmc
+        ));
+
+        TransmutationTable.registerTransmutable(new TransmutationTable.TransmutableItem(
+                "ammo_box",
+                Material.ENDER_CHEST,
+                AmmoBox::create,
+                AmmoBox.KEY,
+                EMCEngine.get(Material.IRON_BLOCK) * 7
+                        + EMCEngine.get(Material.BUNDLE)
+                        + EMCEngine.get(Material.CHEST)
+        ));
+
+        TransmutationTable.registerTransmutable(new TransmutationTable.TransmutableItem(
+                "target_dummy",
+                Material.TARGET,
+                TargetDummyItem::create,
+                TargetDummyItem.KEY,
+                EMCEngine.get(Material.HAY_BLOCK) * 4
+                        + EMCEngine.get(Material.TARGET)
+        ));
+
+        TransmutationTable.registerTransmutable(new TransmutationTable.TransmutableItem(
+                "heavy_stick",
+                Material.STICK,
+                HeavyStick::create,
+                HeavyStick.KEY,
+                EMCEngine.get(Material.IRON_INGOT) * 2
+        ));
     }
 
     private void updateAmmoScoreboards() {

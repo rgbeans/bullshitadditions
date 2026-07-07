@@ -7,6 +7,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -43,6 +44,8 @@ public final class AmmoBox {
                 ChatColor.GRAY + "Stores ammo for your guns",
                 ChatColor.DARK_GRAY + "Right-click to open"
         ));
+        meta.setEnchantmentGlintOverride(true);
+        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
         meta.getPersistentDataContainer().set(KEY, PersistentDataType.BOOLEAN, true);
         item.setItemMeta(meta);
         return item;

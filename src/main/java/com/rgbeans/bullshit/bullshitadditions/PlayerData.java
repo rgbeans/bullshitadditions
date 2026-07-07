@@ -9,6 +9,7 @@ public final class PlayerData {
 
     private double emc;
     private final Set<Material> learned = new HashSet<>();
+    private final Set<String> learnedCustom = new HashSet<>();
 
     public PlayerData(double emc) {
         this.emc = emc;
@@ -40,5 +41,17 @@ public final class PlayerData {
 
     public boolean knows(Material mat) {
         return learned.contains(mat);
+    }
+
+    public Set<String> learnedCustom() {
+        return learnedCustom;
+    }
+
+    public void learnCustom(String key) {
+        learnedCustom.add(key);
+    }
+
+    public boolean knowsCustom(String key) {
+        return learnedCustom.contains(key);
     }
 }
