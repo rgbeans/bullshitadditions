@@ -18,6 +18,34 @@ PaperMC 1.21.4 plugin adding EMC transmutation, guns, custom items, and energy a
 - **`plugin.yml` version** is template-expanded from `gradle.properties` via `processResources`. Don't remove `${version}`.
 - **Paper API uses wildcard** `26.1.2.build.+`. The `runServer` task pins `26.1.2` exactly.
 
+## Git & Release workflow
+
+No CI — everything is manual.
+
+```bash
+# 1. Feature branch
+git checkout -b feature/<description>
+
+# 2. Commit
+git add -A
+git commit -m "<title>" -m "<bullet 1>" -m "<bullet 2>"
+
+# 3. Push + PR
+git push -u origin feature/<description>
+gh pr create --base main --head feature/<description> --title "..." --body "..."
+
+# 4. Merge
+gh pr merge <number> --merge --delete-branch
+
+# 5. Create GitHub Release with JAR
+git checkout main; git pull
+gh release create vX.Y --title "vX.Y - <summary>" --notes "<changelog>" build\libs\bullshitadditions-1.0-SNAPSHOT.jar
+```
+
+- **Version tags**: semantic `vX.Y` (currently v1.2).
+- **Branch naming**: `feature/<description>` for features.
+- **Commit style**: single-line title, multi-line body with `-` bullets.
+
 ## Tests
 
 - Single test file: `src/test/java/.../EMCEngineTest.java`, JUnit 5, 16 tests.
