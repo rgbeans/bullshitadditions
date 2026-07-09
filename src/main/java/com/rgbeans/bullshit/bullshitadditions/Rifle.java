@@ -13,7 +13,7 @@ public final class Rifle {
 
     public static final NamespacedKey KEY = new NamespacedKey("bullshitadditions", "rifle");
     public static final Material AMMO_TYPE = Material.GOLD_NUGGET;
-    public static final double PROJECTILE_SPEED = 9.0;
+    public static final double PROJECTILE_SPEED = 6.0;
     public static final double DAMAGE = 6.0;
     public static final long COOLDOWN_MILLIS = 150;
 

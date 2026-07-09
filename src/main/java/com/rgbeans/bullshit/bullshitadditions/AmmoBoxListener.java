@@ -49,7 +49,7 @@ public final class AmmoBoxListener implements Listener {
             return;
         }
 
-        if (event.getRawSlot() >= 9) return;
+        if (event.getRawSlot() >= AmmoBox.SIZE) return;
 
         ItemStack cursor = event.getCursor();
         ItemStack current = event.getCurrentItem();
@@ -69,7 +69,7 @@ public final class AmmoBoxListener implements Listener {
         ItemStack dragged = event.getOldCursor();
         if (dragged != null && !dragged.isEmpty() && !AmmoBox.AMMO_TYPES.contains(dragged.getType())) {
             for (int slot : event.getRawSlots()) {
-                if (slot < 9) {
+                if (slot < AmmoBox.SIZE) {
                     event.setCancelled(true);
                     return;
                 }

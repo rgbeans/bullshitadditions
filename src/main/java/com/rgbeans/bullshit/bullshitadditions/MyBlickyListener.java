@@ -2,7 +2,6 @@ package com.rgbeans.bullshit.bullshitadditions;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Snowball;
@@ -21,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public final class RifleListener implements Listener {
+public final class MyBlickyListener implements Listener {
 
     private final Map<UUID, Long> cooldowns = new HashMap<>();
 
@@ -36,19 +35,19 @@ public final class RifleListener implements Listener {
 
         Player player = event.getPlayer();
         ItemStack item = event.getItem();
-        if (!Rifle.isRifle(item)) return;
+        if (!MyBlicky.isBlicky(item)) return;
 
         event.setUseItemInHand(Event.Result.DENY);
         event.setUseInteractedBlock(Event.Result.DENY);
 
         long now = System.currentTimeMillis();
         Long last = cooldowns.get(player.getUniqueId());
-        if (last != null && now - last < Rifle.COOLDOWN_MILLIS) {
+        if (last != null && now - last < MyBlicky.COOLDOWN_MILLIS) {
             return;
         }
 
         if (!consumeAmmo(player)) {
-            player.sendActionBar(ChatColor.RED + "You need gold nuggets for ammo!");
+            player.sendActionBar(ChatColor.RED + "You need gold ingots for ammo!");
             return;
         }
 
@@ -58,7 +57,7 @@ public final class RifleListener implements Listener {
 
     private boolean consumeAmmo(Player player) {
         PlayerInventory inv = player.getInventory();
-        int index = inv.first(Rifle.AMMO_TYPE);
+        int index = inv.first(MyBlicky.AMMO_TYPE);
         if (index != -1) {
             ItemStack slot = inv.getItem(index);
             if (slot.getAmount() == 1) {
@@ -71,7 +70,7 @@ public final class RifleListener implements Listener {
 
         for (int i = 0; i < 36; i++) {
             ItemStack item = inv.getItem(i);
-            if (AmmoBox.isAmmoBox(item) && AmmoBox.consumeAmmo(item, Rifle.AMMO_TYPE, 1)) {
+            if (AmmoBox.isAmmoBox(item) && AmmoBox.consumeAmmo(item, MyBlicky.AMMO_TYPE, 1)) {
                 return true;
             }
         }
@@ -86,11 +85,11 @@ public final class RifleListener implements Listener {
         Snowball projectile = player.getWorld().spawn(eye, Snowball.class);
         projectile.setShooter(player);
         projectile.setGravity(false);
-        projectile.setVelocity(direction.multiply(Rifle.PROJECTILE_SPEED));
+        projectile.setVelocity(direction.multiply(MyBlicky.PROJECTILE_SPEED));
         projectile.getPersistentDataContainer().set(GunListener.PROJECTILE_KEY, PersistentDataType.BOOLEAN, true);
-        projectile.getPersistentDataContainer().set(GunListener.DAMAGE_KEY, PersistentDataType.DOUBLE, Rifle.DAMAGE);
-        projectile.setItem(new ItemStack(Rifle.AMMO_TYPE));
+        projectile.getPersistentDataContainer().set(GunListener.DAMAGE_KEY, PersistentDataType.DOUBLE, MyBlicky.DAMAGE);
+        projectile.setItem(new ItemStack(MyBlicky.AMMO_TYPE));
 
-        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_REPAIR, 0.5f, 1.8f);
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 0.6f);
     }
 }

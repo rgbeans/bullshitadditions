@@ -23,14 +23,16 @@ public final class AmmoBox {
 
     static final NamespacedKey KEY = new NamespacedKey("bullshitadditions", "ammo_box");
 
-    private static final NamespacedKey[] SLOT_KEYS = new NamespacedKey[9];
+    static final int SIZE = 18;
+
+    private static final NamespacedKey[] SLOT_KEYS = new NamespacedKey[SIZE];
     static {
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < SIZE; i++) {
             SLOT_KEYS[i] = new NamespacedKey("bullshitadditions", "ammo_slot_" + i);
         }
     }
 
-    static final Set<Material> AMMO_TYPES = Set.of(Material.IRON_NUGGET, Material.GOLD_NUGGET);
+    static final Set<Material> AMMO_TYPES = Set.of(Material.IRON_NUGGET, Material.GOLD_NUGGET, Material.GOLD_INGOT);
 
     static final Map<UUID, Integer> OPEN_BOX_SLOTS = new HashMap<>();
 
@@ -59,11 +61,11 @@ public final class AmmoBox {
     }
 
     static ItemStack[] getContents(ItemStack ammoBox) {
-        ItemStack[] contents = new ItemStack[9];
+        ItemStack[] contents = new ItemStack[SIZE];
         if (!isAmmoBox(ammoBox)) return contents;
 
         PersistentDataContainer pdc = ammoBox.getItemMeta().getPersistentDataContainer();
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < SIZE; i++) {
             byte[] data = pdc.get(SLOT_KEYS[i], PersistentDataType.BYTE_ARRAY);
             if (data != null && data.length > 0) {
                 contents[i] = ItemStack.deserializeBytes(data);
@@ -76,7 +78,7 @@ public final class AmmoBox {
         ItemMeta meta = ammoBox.getItemMeta();
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
 
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < SIZE; i++) {
             if (contents[i] != null && !contents[i].isEmpty()) {
                 pdc.set(SLOT_KEYS[i], PersistentDataType.BYTE_ARRAY, contents[i].serializeAsBytes());
             } else {
@@ -114,7 +116,7 @@ public final class AmmoBox {
 
     static void open(Player player, ItemStack ammoBox, int slot) {
         ItemStack[] contents = getContents(ammoBox);
-        Inventory inv = Bukkit.createInventory(null, 9, "Ammo Box");
+        Inventory inv = Bukkit.createInventory(null, SIZE, "Ammo Box");
         for (int i = 0; i < contents.length; i++) {
             if (contents[i] != null) {
                 inv.setItem(i, contents[i]);
@@ -134,8 +136,8 @@ public final class AmmoBox {
         InventoryView view = player.getOpenInventory();
         if (!view.getTitle().equals("Ammo Box")) return;
 
-        ItemStack[] contents = new ItemStack[9];
-        for (int i = 0; i < 9; i++) {
+        ItemStack[] contents = new ItemStack[SIZE];
+        for (int i = 0; i < SIZE; i++) {
             ItemStack item = view.getTopInventory().getItem(i);
             if (item != null && !item.isEmpty()) {
                 contents[i] = item.clone();
