@@ -106,6 +106,7 @@ public final class GunListener implements Listener {
 
         Snowball projectile = player.getWorld().spawn(eye, Snowball.class);
         projectile.setShooter(player);
+        projectile.setGravity(false);
         projectile.setVelocity(direction.multiply(Pistol.PROJECTILE_SPEED));
         projectile.getPersistentDataContainer().set(PROJECTILE_KEY, PersistentDataType.BOOLEAN, true);
         projectile.getPersistentDataContainer().set(DAMAGE_KEY, PersistentDataType.DOUBLE, Pistol.DAMAGE);

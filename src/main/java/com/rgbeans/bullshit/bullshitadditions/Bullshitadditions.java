@@ -31,6 +31,7 @@ public final class Bullshitadditions extends JavaPlugin {
     private PlayerDataManager playerDataManager;
     private TransmutationTable transmutationTable;
     private EnergyCondenser energyCondenser;
+    private MinecartListener minecartListener;
     private final Map<UUID, int[]> lastAmmoCounts = new HashMap<>();
 
     @Override
@@ -48,6 +49,11 @@ public final class Bullshitadditions extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new GunListener(), this);
         getServer().getPluginManager().registerEvents(new RifleListener(), this);
+        getServer().getPluginManager().registerEvents(new MyBlickyListener(), this);
+        getServer().getPluginManager().registerEvents(new GravityGunListener(this), this);
+        minecartListener = new MinecartListener(MinecartListener.VANILLA_MAX_SPEED * 4);
+        getServer().getPluginManager().registerEvents(minecartListener, this);
+        minecartListener.applyToLoaded(getServer());
         getServer().getPluginManager().registerEvents(new HeavyStickListener(), this);
         getServer().getPluginManager().registerEvents(new TargetDummyListener(), this);
         getServer().getPluginManager().registerEvents(new AmmoBoxListener(), this);
@@ -98,6 +104,18 @@ public final class Bullshitadditions extends JavaPlugin {
             return giveItem(sender, Rifle.create(), "Rifle");
         }
 
+        if (name.equals("myblicky")) {
+            return giveItem(sender, MyBlicky.create(), "my blicky");
+        }
+
+        if (name.equals("gravitygun")) {
+            return giveItem(sender, GravityGun.create(), "Gravity Gun");
+        }
+
+        if (name.equals("minecartspeed")) {
+            return handleMinecartSpeed(sender, args);
+        }
+
         if (name.equals("recipes")) {
             if (!(sender instanceof Player player)) {
                 sender.sendMessage("Only players can use this command.");
@@ -137,6 +155,15 @@ public final class Bullshitadditions extends JavaPlugin {
 
     @Override
     public java.util.List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (command.getName().equalsIgnoreCase("minecartspeed")) {
+            if (args.length == 1) {
+                return java.util.List.of("1", "2", "4", "8", "16").stream()
+                        .filter(s -> s.startsWith(args[0]))
+                        .toList();
+            }
+            return java.util.List.of();
+        }
+
         if (!command.getName().equalsIgnoreCase("emc")) return super.onTabComplete(sender, command, alias, args);
 
         if (args.length == 1) {
@@ -420,6 +447,45 @@ public final class Bullshitadditions extends JavaPlugin {
         getServer().addRecipe(rifleRecipe);
         RecipeRegistry.register(new RecipeInfo("Rifle", Rifle.create(), rifleIngredients));
 
+        ItemStack[] blickyIngredients = new ItemStack[9];
+        for (int i = 0; i < 9; i++) {
+            blickyIngredients[i] = (i == 4)
+                    ? new ItemStack(Material.IRON_HOE)
+                    : new ItemStack(Material.GOLD_BLOCK);
+        }
+
+        ShapedRecipe blickyRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "my_blicky"),
+                MyBlicky.create()
+        );
+        blickyRecipe.shape("GGG", "GHG", "GGG");
+        blickyRecipe.setIngredient('G', Material.GOLD_BLOCK);
+        blickyRecipe.setIngredient('H', Material.IRON_HOE);
+        getServer().addRecipe(blickyRecipe);
+        RecipeRegistry.register(new RecipeInfo("my blicky", MyBlicky.create(), blickyIngredients));
+
+        ItemStack[] gravityGunIngredients = new ItemStack[9];
+        gravityGunIngredients[0] = new ItemStack(Material.NETHERITE_INGOT);
+        gravityGunIngredients[1] = new ItemStack(Material.WIND_CHARGE);
+        gravityGunIngredients[2] = new ItemStack(Material.NETHERITE_INGOT);
+        gravityGunIngredients[3] = new ItemStack(Material.WIND_CHARGE);
+        gravityGunIngredients[4] = new ItemStack(Material.IRON_HOE);
+        gravityGunIngredients[5] = new ItemStack(Material.WIND_CHARGE);
+        gravityGunIngredients[6] = new ItemStack(Material.NETHERITE_INGOT);
+        gravityGunIngredients[7] = new ItemStack(Material.WIND_CHARGE);
+        gravityGunIngredients[8] = new ItemStack(Material.NETHERITE_INGOT);
+
+        ShapedRecipe gravityGunRecipe = new ShapedRecipe(
+                new NamespacedKey(this, "gravity_gun"),
+                GravityGun.create()
+        );
+        gravityGunRecipe.shape("NWN", "WHW", "NWN");
+        gravityGunRecipe.setIngredient('N', Material.NETHERITE_INGOT);
+        gravityGunRecipe.setIngredient('W', Material.WIND_CHARGE);
+        gravityGunRecipe.setIngredient('H', Material.IRON_HOE);
+        getServer().addRecipe(gravityGunRecipe);
+        RecipeRegistry.register(new RecipeInfo("Gravity Gun", GravityGun.create(), gravityGunIngredients));
+
         ShapedRecipe transmutationRecipe = new ShapedRecipe(
                 new NamespacedKey(this, "transmutation_table"),
                 TransmutationBlock.createItem()
@@ -540,21 +606,49 @@ public final class Bullshitadditions extends JavaPlugin {
         ));
     }
 
+    private boolean handleMinecartSpeed(CommandSender sender, String[] args) {
+        if (args.length == 0) {
+            double multiplier = minecartListener.getMaxSpeed() / MinecartListener.VANILLA_MAX_SPEED;
+            sender.sendMessage("§6Minecart speed: §f" + String.format("%.1f", multiplier) + "x §7vanilla "
+                    + "§8(" + String.format("%.0f", minecartListener.getMaxSpeed() * 20) + " blocks/sec)");
+            sender.sendMessage("§7Usage: /minecartspeed <multiplier>  §8(vanilla = 1, current default = 4)");
+            return true;
+        }
+
+        double multiplier;
+        try {
+            multiplier = Double.parseDouble(args[0]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage("§cInvalid number: " + args[0]);
+            return true;
+        }
+        multiplier = Math.max(1.0, Math.min(100.0, multiplier));
+
+        minecartListener.setMaxSpeed(MinecartListener.VANILLA_MAX_SPEED * multiplier);
+        int updated = minecartListener.applyToLoaded(getServer());
+        sender.sendMessage("§aMinecart speed set to §f" + String.format("%.1f", multiplier) + "x §avanilla "
+                + "§7(" + String.format("%.0f", minecartListener.getMaxSpeed() * 20) + " blocks/sec)§a. "
+                + "Updated " + updated + " loaded minecart(s).");
+        return true;
+    }
+
     private void updateAmmoScoreboards() {
         for (Player player : getServer().getOnlinePlayers()) {
             ItemStack mainHand = player.getInventory().getItemInMainHand();
             ItemStack offHand = player.getInventory().getItemInOffHand();
             boolean holdingGun = Pistol.isGun(mainHand) || Pistol.isGun(offHand)
-                    || Rifle.isRifle(mainHand) || Rifle.isRifle(offHand);
+                    || Rifle.isRifle(mainHand) || Rifle.isRifle(offHand)
+                    || MyBlicky.isBlicky(mainHand) || MyBlicky.isBlicky(offHand);
 
             if (holdingGun) {
                 int iron = countTotalAmmo(player, Material.IRON_NUGGET);
                 int gold = countTotalAmmo(player, Material.GOLD_NUGGET);
+                int bars = countTotalAmmo(player, Material.GOLD_INGOT);
                 UUID uuid = player.getUniqueId();
                 int[] last = lastAmmoCounts.get(uuid);
 
-                if (last != null && last[0] == iron && last[1] == gold) continue;
-                lastAmmoCounts.put(uuid, new int[]{iron, gold});
+                if (last != null && last[0] == iron && last[1] == gold && last[2] == bars) continue;
+                lastAmmoCounts.put(uuid, new int[]{iron, gold, bars});
 
                 Scoreboard board = player.getScoreboard();
                 Objective obj = board.getObjective("ammo");
@@ -569,10 +663,12 @@ public final class Bullshitadditions extends JavaPlugin {
                 if (last != null) {
                     board.resetScores(ChatColor.GRAY + "Iron: " + last[0]);
                     board.resetScores(ChatColor.YELLOW + "Gold: " + last[1]);
+                    board.resetScores(ChatColor.GOLD + "Gold Bars: " + last[2]);
                 }
 
-                obj.getScore(ChatColor.GRAY + "Iron: " + iron).setScore(1);
-                obj.getScore(ChatColor.YELLOW + "Gold: " + gold).setScore(0);
+                obj.getScore(ChatColor.GRAY + "Iron: " + iron).setScore(2);
+                obj.getScore(ChatColor.YELLOW + "Gold: " + gold).setScore(1);
+                obj.getScore(ChatColor.GOLD + "Gold Bars: " + bars).setScore(0);
             } else {
                 Scoreboard board = player.getScoreboard();
                 if (board.getObjective("ammo") != null) {

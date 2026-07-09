@@ -38,6 +38,21 @@ commands:
     usage: /rifle
     permission: bullshitadditions.rifle
     permission-message: You do not have permission.
+  myblicky:
+    description: Gives you my blicky
+    usage: /myblicky
+    permission: bullshitadditions.myblicky
+    permission-message: You do not have permission.
+  gravitygun:
+    description: Gives you a Gravity Gun
+    usage: /gravitygun
+    permission: bullshitadditions.gravitygun
+    permission-message: You do not have permission.
+  minecartspeed:
+    description: View or set the max minecart speed
+    usage: /minecartspeed [1-1000]
+    permission: bullshitadditions.minecartspeed
+    permission-message: You do not have permission.
   transmute:
     description: Opens the Transmutation Table GUI
     usage: /transmute
@@ -87,6 +102,15 @@ permissions:
     default: op
   bullshitadditions.rifle:
     description: Allows spawning a Rifle
+    default: op
+  bullshitadditions.myblicky:
+    description: Allows spawning my blicky
+    default: op
+  bullshitadditions.gravitygun:
+    description: Allows spawning a Gravity Gun
+    default: op
+  bullshitadditions.minecartspeed:
+    description: Allows viewing and setting the max minecart speed
     default: op
   bullshitadditions.transmute:
     description: Allows opening the Transmutation Table GUI
