@@ -46,6 +46,10 @@ Placable item that spawns an invincible armor stand with a target block head and
 - **Recipe**: Hay bales in cross around target block
 - **Command**: `/targetdummy` (permission: `bullshitadditions.targetdummy`, default: op)
 
+## Minecart Speed
+
+Minecarts default to 4× the vanilla maximum speed. Use `/minecartspeed` to view the current cap or `/minecartspeed <multiplier>` to set it from 1× to 100×. The setting is saved in `config.yml` and applied to loaded carts immediately and to other carts as their chunks load.
+
 ## Commands
 | Command | Permission | Default |
 |---|---|---|
@@ -65,6 +69,7 @@ Placable item that spawns an invincible armor stand with a target block head and
 | `/rifle` | `bullshitadditions.rifle` | OP |
 | `/heavystick` | `bullshitadditions.heavystick` | OP |
 | `/ammobox` | `bullshitadditions.ammobox` | OP |
+| `/minecartspeed [multiplier]` | `bullshitadditions.minecartspeed` | OP |
 | `/targetdummy` | `bullshitadditions.targetdummy` | OP |
 
 ## Ammo Scoreboard

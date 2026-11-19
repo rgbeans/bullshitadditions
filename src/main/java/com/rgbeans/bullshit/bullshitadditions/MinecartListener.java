@@ -2,11 +2,13 @@ package com.rgbeans.bullshit.bullshitadditions;
 
 import org.bukkit.Server;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Minecart;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
+import org.bukkit.event.world.EntitiesLoadEvent;
 
 public final class MinecartListener implements Listener {
 
@@ -35,6 +37,15 @@ public final class MinecartListener implements Listener {
             }
         }
         return count;
+    }
+
+    @EventHandler
+    public void onEntitiesLoad(EntitiesLoadEvent event) {
+        for (Entity entity : event.getEntities()) {
+            if (entity instanceof Minecart cart) {
+                cart.setMaxSpeed(maxSpeed);
+            }
+        }
     }
 
     @EventHandler

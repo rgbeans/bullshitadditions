@@ -22,10 +22,16 @@ import org.jetbrains.annotations.NotNull;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.logging.Level;
 
 public final class Bullshitadditions extends JavaPlugin {
+
+    private static final String MINECART_SPEED_SETTING = "minecart-speed-multiplier";
+    private static final double DEFAULT_MINECART_MULTIPLIER = 4.0;
+    private static final double MAX_MINECART_MULTIPLIER = 100.0;
 
     private RecipeGui recipeGui;
     private PlayerDataManager playerDataManager;
@@ -51,7 +57,12 @@ public final class Bullshitadditions extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new RifleListener(), this);
         getServer().getPluginManager().registerEvents(new MyBlickyListener(), this);
         getServer().getPluginManager().registerEvents(new GravityGunListener(this), this);
-        minecartListener = new MinecartListener(MinecartListener.VANILLA_MAX_SPEED * 4);
+        double minecartMultiplier = getConfig().getDouble(MINECART_SPEED_SETTING, DEFAULT_MINECART_MULTIPLIER);
+        if (!Double.isFinite(minecartMultiplier) || minecartMultiplier < 1 || minecartMultiplier > MAX_MINECART_MULTIPLIER) {
+            getLogger().warning("Invalid minecart-speed-multiplier in config.yml. Using 4x.");
+            minecartMultiplier = DEFAULT_MINECART_MULTIPLIER;
+        }
+        minecartListener = new MinecartListener(MinecartListener.VANILLA_MAX_SPEED * minecartMultiplier);
         getServer().getPluginManager().registerEvents(minecartListener, this);
         minecartListener.applyToLoaded(getServer());
         getServer().getPluginManager().registerEvents(new HeavyStickListener(), this);
@@ -611,9 +622,11 @@ public final class Bullshitadditions extends JavaPlugin {
             double multiplier = minecartListener.getMaxSpeed() / MinecartListener.VANILLA_MAX_SPEED;
             sender.sendMessage("§6Minecart speed: §f" + String.format("%.1f", multiplier) + "x §7vanilla "
                     + "§8(" + String.format("%.0f", minecartListener.getMaxSpeed() * 20) + " blocks/sec)");
-            sender.sendMessage("§7Usage: /minecartspeed <multiplier>  §8(vanilla = 1, current default = 4)");
+            sender.sendMessage("§7Usage: /minecartspeed <multiplier>  §8(1–100, default = 4)");
             return true;
         }
+
+        if (args.length != 1) return false;
 
         double multiplier;
         try {
@@ -622,7 +635,21 @@ public final class Bullshitadditions extends JavaPlugin {
             sender.sendMessage("§cInvalid number: " + args[0]);
             return true;
         }
-        multiplier = Math.max(1.0, Math.min(100.0, multiplier));
+        if (!Double.isFinite(multiplier) || multiplier < 1 || multiplier > MAX_MINECART_MULTIPLIER) {
+            sender.sendMessage("§cMinecart speed must be between 1x and 100x.");
+            return true;
+        }
+
+        Object previous = getConfig().get(MINECART_SPEED_SETTING);
+        getConfig().set(MINECART_SPEED_SETTING, multiplier);
+        try {
+            getConfig().save(new File(getDataFolder(), "config.yml"));
+        } catch (IOException e) {
+            getConfig().set(MINECART_SPEED_SETTING, previous);
+            getLogger().log(Level.WARNING, "Could not save minecart speed", e);
+            sender.sendMessage("§cCould not save minecart speed. Check the server log.");
+            return true;
+        }
 
         minecartListener.setMaxSpeed(MinecartListener.VANILLA_MAX_SPEED * multiplier);
         int updated = minecartListener.applyToLoaded(getServer());
