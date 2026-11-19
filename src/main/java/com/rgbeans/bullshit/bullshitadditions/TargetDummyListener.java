@@ -19,7 +19,14 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.projectiles.ProjectileSource;
 
+import static com.rgbeans.bullshit.bullshitadditions.GameplaySettings.Setting.DUMMY_DAMAGE;
+
 public final class TargetDummyListener implements Listener {
+    private final GameplaySettings settings;
+
+    TargetDummyListener(GameplaySettings settings) {
+        this.settings = settings;
+    }
 
     @EventHandler
     public void onPlace(PlayerInteractEvent event) {
@@ -58,7 +65,7 @@ public final class TargetDummyListener implements Listener {
 
         if (event instanceof EntityDamageByEntityEvent damageEvent) {
             if (tryRemove(damageEvent, stand)) return;
-            reportDamage(damageEvent, stand);
+            if (settings.enabled(DUMMY_DAMAGE)) reportDamage(damageEvent, stand);
         }
     }
 

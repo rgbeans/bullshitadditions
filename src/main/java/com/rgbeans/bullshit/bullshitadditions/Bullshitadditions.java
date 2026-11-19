@@ -25,6 +25,9 @@ import java.util.UUID;
 import java.io.FileWriter;
 import java.io.IOException;
 
+import com.rgbeans.bullshit.bullshitadditions.GameplaySettings.Setting;
+import static com.rgbeans.bullshit.bullshitadditions.GameplaySettings.Setting.*;
+
 public final class Bullshitadditions extends JavaPlugin {
 
     private RecipeGui recipeGui;
@@ -32,6 +35,11 @@ public final class Bullshitadditions extends JavaPlugin {
     private TransmutationTable transmutationTable;
     private EnergyCondenser energyCondenser;
     private MinecartListener minecartListener;
+    private GameplaySettings settings;
+    private ConfigMenu configMenu;
+    private GravityGunListener gravityGunListener;
+    private HerobrineSightings herobrine;
+    private boolean showingEmc;
     private final Map<UUID, int[]> lastAmmoCounts = new HashMap<>();
 
     @Override
@@ -42,20 +50,25 @@ public final class Bullshitadditions extends JavaPlugin {
 
         registerTransmutableItems();
 
+        settings = new GameplaySettings(this);
+        configMenu = new ConfigMenu(settings, this::settingChanged, getLogger());
         playerDataManager = new PlayerDataManager(this);
-        transmutationTable = new TransmutationTable(this, playerDataManager);
+        transmutationTable = new TransmutationTable(this, playerDataManager, settings);
         recipeGui = new RecipeGui(this);
-        energyCondenser = new EnergyCondenser(this);
+        energyCondenser = new EnergyCondenser(this, settings);
 
-        getServer().getPluginManager().registerEvents(new GunListener(), this);
-        getServer().getPluginManager().registerEvents(new RifleListener(), this);
-        getServer().getPluginManager().registerEvents(new MyBlickyListener(), this);
-        getServer().getPluginManager().registerEvents(new GravityGunListener(this), this);
-        minecartListener = new MinecartListener(MinecartListener.VANILLA_MAX_SPEED * 4);
+        getServer().getPluginManager().registerEvents(new GunListener(settings), this);
+        getServer().getPluginManager().registerEvents(new RifleListener(settings), this);
+        getServer().getPluginManager().registerEvents(new MyBlickyListener(settings), this);
+        gravityGunListener = new GravityGunListener(this, settings);
+        getServer().getPluginManager().registerEvents(gravityGunListener, this);
+        getServer().getPluginManager().registerEvents(configMenu, this);
+        herobrine = new HerobrineSightings(this, settings);
+        minecartListener = new MinecartListener(MinecartListener.VANILLA_MAX_SPEED * settings.get(MINECART_SPEED));
         getServer().getPluginManager().registerEvents(minecartListener, this);
         minecartListener.applyToLoaded(getServer());
-        getServer().getPluginManager().registerEvents(new HeavyStickListener(), this);
-        getServer().getPluginManager().registerEvents(new TargetDummyListener(), this);
+        getServer().getPluginManager().registerEvents(new HeavyStickListener(settings), this);
+        getServer().getPluginManager().registerEvents(new TargetDummyListener(settings), this);
         getServer().getPluginManager().registerEvents(new AmmoBoxListener(), this);
         getServer().getPluginManager().registerEvents(recipeGui, this);
         getServer().getPluginManager().registerEvents(transmutationTable, this);
@@ -72,6 +85,8 @@ public final class Bullshitadditions extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (gravityGunListener != null) gravityGunListener.releaseAll();
+        if (herobrine != null) herobrine.clear();
         if (playerDataManager != null) playerDataManager.saveAll();
         getLogger().info("Bullshit Additions disabled!");
     }
@@ -79,6 +94,16 @@ public final class Bullshitadditions extends JavaPlugin {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         String name = command.getName().toLowerCase();
+
+        if (name.equals("bsconfig")) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage("This command opens an in-game menu.");
+                return true;
+            }
+            if (!player.hasPermission(ConfigMenu.PERMISSION)) return true;
+            configMenu.open(player);
+            return true;
+        }
 
         if (name.equals("ironbargun")) {
             return giveItem(sender, Pistol.create(), "Pistol");
@@ -117,6 +142,10 @@ public final class Bullshitadditions extends JavaPlugin {
         }
 
         if (name.equals("recipes")) {
+            if (!settings.enabled(RECIPE_GUI)) {
+                sender.sendMessage("§cThe recipe browser is disabled.");
+                return true;
+            }
             if (!(sender instanceof Player player)) {
                 sender.sendMessage("Only players can use this command.");
                 return true;
@@ -622,23 +651,50 @@ public final class Bullshitadditions extends JavaPlugin {
             sender.sendMessage("§cInvalid number: " + args[0]);
             return true;
         }
-        multiplier = Math.max(1.0, Math.min(100.0, multiplier));
+        if (!Double.isFinite(multiplier)) {
+            sender.sendMessage("§cMinecart speed must be a finite number.");
+            return true;
+        }
+        multiplier = Math.max(MINECART_SPEED.min, Math.min(MINECART_SPEED.max, multiplier));
 
-        minecartListener.setMaxSpeed(MinecartListener.VANILLA_MAX_SPEED * multiplier);
-        int updated = minecartListener.applyToLoaded(getServer());
+        try {
+            settings.set(MINECART_SPEED, multiplier);
+        } catch (IOException e) {
+            getLogger().log(java.util.logging.Level.WARNING, "Could not save minecart speed", e);
+            sender.sendMessage("§cCould not save minecart speed. Check the server log.");
+            return true;
+        }
+        int updated = applyMinecartSpeed();
         sender.sendMessage("§aMinecart speed set to §f" + String.format("%.1f", multiplier) + "x §avanilla "
                 + "§7(" + String.format("%.0f", minecartListener.getMaxSpeed() * 20) + " blocks/sec)§a. "
                 + "Updated " + updated + " loaded minecart(s).");
         return true;
     }
 
+    private void settingChanged(Setting setting) {
+        switch (setting) {
+            case MINECART_SPEED -> applyMinecartSpeed();
+            case AMMO_BOX, AMMO_DISPLAY -> updateAmmoScoreboards();
+            case EMC_DISPLAY -> updateEmcTabList();
+            case HEROBRINE -> {
+                if (!settings.enabled(HEROBRINE)) herobrine.clear();
+            }
+            default -> { }
+        }
+    }
+
+    private int applyMinecartSpeed() {
+        minecartListener.setMaxSpeed(MinecartListener.VANILLA_MAX_SPEED * settings.get(MINECART_SPEED));
+        return minecartListener.applyToLoaded(getServer());
+    }
+
     private void updateAmmoScoreboards() {
         for (Player player : getServer().getOnlinePlayers()) {
             ItemStack mainHand = player.getInventory().getItemInMainHand();
             ItemStack offHand = player.getInventory().getItemInOffHand();
-            boolean holdingGun = Pistol.isGun(mainHand) || Pistol.isGun(offHand)
+            boolean holdingGun = settings.enabled(AMMO_DISPLAY) && (Pistol.isGun(mainHand) || Pistol.isGun(offHand)
                     || Rifle.isRifle(mainHand) || Rifle.isRifle(offHand)
-                    || MyBlicky.isBlicky(mainHand) || MyBlicky.isBlicky(offHand);
+                    || MyBlicky.isBlicky(mainHand) || MyBlicky.isBlicky(offHand));
 
             if (holdingGun) {
                 int iron = countTotalAmmo(player, Material.IRON_NUGGET);
@@ -687,7 +743,7 @@ public final class Bullshitadditions extends JavaPlugin {
             if (item != null && item.getType() == type) {
                 count += item.getAmount();
             }
-            if (AmmoBox.isAmmoBox(item)) {
+            if (settings.enabled(AMMO_BOX) && AmmoBox.isAmmoBox(item)) {
                 count += AmmoBox.countAmmo(item, type);
             }
         }
@@ -695,6 +751,14 @@ public final class Bullshitadditions extends JavaPlugin {
     }
 
     private void updateEmcTabList() {
+        if (!settings.enabled(EMC_DISPLAY)) {
+            if (showingEmc) {
+                for (Player player : getServer().getOnlinePlayers()) player.setPlayerListHeader("");
+            }
+            showingEmc = false;
+            return;
+        }
+        showingEmc = true;
         for (Player player : getServer().getOnlinePlayers()) {
             double emc = playerDataManager.get(player.getUniqueId()).emc();
             player.setPlayerListHeader(ChatColor.GOLD + "EMC: " + ChatColor.WHITE + EMCEngine.formatEmc(emc) + "\n");

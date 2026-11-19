@@ -8,6 +8,10 @@ api-version: '26.1.2'
 load: POSTWORLD
 
 commands:
+  bsconfig:
+    description: Opens the Bullshit Additions settings menu
+    usage: /bsconfig
+    permission: bullshitadditions.config
   ironbargun:
     description: Gives you a Pistol
     usage: /ironbargun
@@ -50,7 +54,7 @@ commands:
     permission-message: You do not have permission.
   minecartspeed:
     description: View or set the max minecart speed
-    usage: /minecartspeed [1-1000]
+    usage: /minecartspeed [1-100]
     permission: bullshitadditions.minecartspeed
     permission-message: You do not have permission.
   transmute:
@@ -85,6 +89,9 @@ commands:
     permission-message: You do not have permission.
 
 permissions:
+  bullshitadditions.config:
+    description: Allows editing Bullshit Additions settings
+    default: op
   bullshitadditions.recipes:
     description: Allows viewing custom recipes
     default: true
