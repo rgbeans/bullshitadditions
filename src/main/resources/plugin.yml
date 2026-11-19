@@ -50,7 +50,7 @@ commands:
     permission-message: You do not have permission.
   minecartspeed:
     description: View or set the max minecart speed
-    usage: /minecartspeed [1-1000]
+    usage: /minecartspeed [1-100]
     permission: bullshitadditions.minecartspeed
     permission-message: You do not have permission.
   transmute:
