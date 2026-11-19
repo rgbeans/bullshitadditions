@@ -46,9 +46,19 @@ Placable item that spawns an invincible armor stand with a target block head and
 - **Recipe**: Hay bales in cross around target block
 - **Command**: `/targetdummy` (permission: `bullshitadditions.targetdummy`, default: op)
 
+## Server settings
+
+Run `/bsconfig` in game as an operator. Click an option to toggle it. For numbers, left-click increases, right-click decreases, Shift changes by five steps, and Q resets the default. Changes take effect immediately and save to `config.yml`.
+
+- **Guns**: Tune damage, projectile speed, and cooldowns, Ender Dragon hits, ammo-box use, and the ammo scoreboard.
+- **Gravity Gun**: Right-click to grab an entity or sneak and right-click a solid block to pick it up. Right-click again to launch, or left-click to release. Set block, entity, and player pickup separately, along with reach, hold distance, launch speed, and cooldown. Containers, other blocks with stored data, and unbreakable blocks cannot be picked up.
+- **Herobrine**: By default, each eligible player has a 1% chance per minute to see Herobrine for two ticks (0.1 seconds at 20 TPS). A sighting needs a visible spot in front of the player and is shown only to that player. Control the chance, interval, duration, or switch sightings off.
+- **Other features**: Set minecart speed, Heavy Stick depth, target-dummy damage readouts, Energy Condenser processing, Transmutation Table access, the EMC tab-list display, and the recipe browser.
+
 ## Commands
 | Command | Permission | Default |
 |---|---|---|
+| `/bsconfig` | `bullshitadditions.config` | OP |
 | `/emc get` | `bullshitadditions.emc` | Everyone |
 | `/emc reload` | `bullshitadditions.emc` | OP |
 | `/emc list` | `bullshitadditions.emc` | OP |

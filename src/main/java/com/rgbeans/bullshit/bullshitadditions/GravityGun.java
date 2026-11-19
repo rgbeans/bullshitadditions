@@ -24,6 +24,7 @@ public final class GravityGun {
         meta.setDisplayName(ChatColor.AQUA + "Gravity Gun");
         meta.setLore(List.of(
                 ChatColor.GRAY + "Right-click to grab an entity",
+                ChatColor.GRAY + "Sneak + right-click to pick up a block",
                 ChatColor.GRAY + "Right-click again to launch it",
                 ChatColor.GRAY + "Left-click to gently release",
                 ChatColor.DARK_GRAY + "Works on players too"

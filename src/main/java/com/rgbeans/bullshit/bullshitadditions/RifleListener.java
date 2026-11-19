@@ -21,9 +21,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.rgbeans.bullshit.bullshitadditions.GameplaySettings.Setting.*;
+
 public final class RifleListener implements Listener {
 
     private final Map<UUID, Long> cooldowns = new HashMap<>();
+
+    private final GameplaySettings settings;
+
+    RifleListener(GameplaySettings settings) {
+        this.settings = settings;
+    }
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
@@ -43,7 +51,7 @@ public final class RifleListener implements Listener {
 
         long now = System.currentTimeMillis();
         Long last = cooldowns.get(player.getUniqueId());
-        if (last != null && now - last < Rifle.COOLDOWN_MILLIS) {
+        if (last != null && now - last < settings.get(RIFLE_COOLDOWN)) {
             return;
         }
 
@@ -69,6 +77,8 @@ public final class RifleListener implements Listener {
             return true;
         }
 
+        if (!settings.enabled(AMMO_BOX)) return false;
+
         for (int i = 0; i < 36; i++) {
             ItemStack item = inv.getItem(i);
             if (AmmoBox.isAmmoBox(item) && AmmoBox.consumeAmmo(item, Rifle.AMMO_TYPE, 1)) {
@@ -86,9 +96,9 @@ public final class RifleListener implements Listener {
         Snowball projectile = player.getWorld().spawn(eye, Snowball.class);
         projectile.setShooter(player);
         projectile.setGravity(false);
-        projectile.setVelocity(direction.multiply(Rifle.PROJECTILE_SPEED));
+        projectile.setVelocity(direction.multiply(settings.get(RIFLE_SPEED)));
         projectile.getPersistentDataContainer().set(GunListener.PROJECTILE_KEY, PersistentDataType.BOOLEAN, true);
-        projectile.getPersistentDataContainer().set(GunListener.DAMAGE_KEY, PersistentDataType.DOUBLE, Rifle.DAMAGE);
+        projectile.getPersistentDataContainer().set(GunListener.DAMAGE_KEY, PersistentDataType.DOUBLE, settings.get(RIFLE_DAMAGE));
         projectile.setItem(new ItemStack(Rifle.AMMO_TYPE));
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_REPAIR, 0.5f, 1.8f);
