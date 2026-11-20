@@ -8,6 +8,14 @@ api-version: '26.1.2'
 load: POSTWORLD
 
 commands:
+  blockplacer:
+    description: Gives you a Block Placer
+    usage: /blockplacer
+    permission: bullshitadditions.blockplacer
+  blockbreaker:
+    description: Gives you a Block Breaker
+    usage: /blockbreaker
+    permission: bullshitadditions.blockbreaker
   bsconfig:
     description: Opens the Bullshit Additions settings menu
     usage: /bsconfig
@@ -89,6 +97,12 @@ commands:
     permission-message: You do not have permission.
 
 permissions:
+  bullshitadditions.blockplacer:
+    description: Allows spawning a Block Placer
+    default: op
+  bullshitadditions.blockbreaker:
+    description: Allows spawning a Block Breaker
+    default: op
   bullshitadditions.config:
     description: Allows editing Bullshit Additions settings
     default: op

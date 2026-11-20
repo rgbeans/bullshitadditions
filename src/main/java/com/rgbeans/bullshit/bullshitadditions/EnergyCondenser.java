@@ -60,10 +60,7 @@ public final class EnergyCondenser implements Listener {
     private final Set<Location> condenserLocations = ConcurrentHashMap.newKeySet();
     private BukkitTask processingTask;
 
-    private final GameplaySettings settings;
-
-    EnergyCondenser(JavaPlugin plugin, GameplaySettings settings) {
-        this.settings = settings;
+    EnergyCondenser(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
@@ -80,7 +77,6 @@ public final class EnergyCondenser implements Listener {
     }
 
     private void tickAllCondensers() {
-        if (!settings.enabled(GameplaySettings.Setting.CONDENSER)) return;
         var stale = new java.util.ArrayList<Location>();
         for (Location loc : condenserLocations) {
             World world = loc.getWorld();

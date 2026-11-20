@@ -22,19 +22,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static com.rgbeans.bullshit.bullshitadditions.GameplaySettings.Setting.*;
-
 public final class GunListener implements Listener {
 
     static final NamespacedKey PROJECTILE_KEY = new NamespacedKey("bullshitadditions", "gun_projectile");
     static final NamespacedKey DAMAGE_KEY = new NamespacedKey("bullshitadditions", "gun_damage");
     private final Map<UUID, Long> cooldowns = new HashMap<>();
-
-    private final GameplaySettings settings;
-
-    GunListener(GameplaySettings settings) {
-        this.settings = settings;
-    }
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
@@ -54,7 +46,7 @@ public final class GunListener implements Listener {
 
         long now = System.currentTimeMillis();
         Long last = cooldowns.get(player.getUniqueId());
-        if (last != null && now - last < settings.get(PISTOL_COOLDOWN)) {
+        if (last != null && now - last < Pistol.COOLDOWN_MILLIS) {
             return;
         }
 
@@ -72,7 +64,7 @@ public final class GunListener implements Listener {
         if (!(event.getEntity() instanceof Snowball snowball)) return;
         if (!snowball.getPersistentDataContainer().has(PROJECTILE_KEY, PersistentDataType.BOOLEAN)) return;
 
-        if (settings.enabled(DRAGON_DAMAGE) && snowball.getShooter() instanceof Player shooter) {
+        if (snowball.getShooter() instanceof Player shooter) {
             Entity hit = event.getHitEntity();
             EnderDragon dragon = hit instanceof EnderDragonPart part ? part.getParent()
                     : hit instanceof EnderDragon parent ? parent : null;
@@ -118,8 +110,6 @@ public final class GunListener implements Listener {
             return true;
         }
 
-        if (!settings.enabled(AMMO_BOX)) return false;
-
         for (int i = 0; i < 36; i++) {
             ItemStack item = inv.getItem(i);
             if (AmmoBox.isAmmoBox(item) && AmmoBox.consumeAmmo(item, Pistol.AMMO_TYPE, 1)) {
@@ -137,9 +127,9 @@ public final class GunListener implements Listener {
         Snowball projectile = player.getWorld().spawn(eye, Snowball.class);
         projectile.setShooter(player);
         projectile.setGravity(false);
-        projectile.setVelocity(direction.multiply(settings.get(PISTOL_SPEED)));
+        projectile.setVelocity(direction.multiply(Pistol.PROJECTILE_SPEED));
         projectile.getPersistentDataContainer().set(PROJECTILE_KEY, PersistentDataType.BOOLEAN, true);
-        projectile.getPersistentDataContainer().set(DAMAGE_KEY, PersistentDataType.DOUBLE, settings.get(PISTOL_DAMAGE));
+        projectile.getPersistentDataContainer().set(DAMAGE_KEY, PersistentDataType.DOUBLE, Pistol.DAMAGE);
         projectile.setItem(new ItemStack(Pistol.AMMO_TYPE));
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_IRON_GOLEM_REPAIR, 0.7f, 1.5f);

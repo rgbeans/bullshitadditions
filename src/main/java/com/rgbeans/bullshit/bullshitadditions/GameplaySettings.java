@@ -10,36 +10,14 @@ import java.nio.file.StandardCopyOption;
 
 final class GameplaySettings {
     enum Setting {
-        DRAGON_DAMAGE("guns.dragon-damage", "Guns damage the Ender Dragon", Material.DRAGON_HEAD, true),
-        PISTOL_DAMAGE("guns.pistol.damage", "Pistol damage", Material.IRON_NUGGET, Pistol.DAMAGE, 0, 100, 1),
-        RIFLE_DAMAGE("guns.rifle.damage", "Rifle damage", Material.GOLD_NUGGET, Rifle.DAMAGE, 0, 100, 1),
-        BLICKY_DAMAGE("guns.blicky.damage", "My Blicky damage", Material.GOLD_INGOT, MyBlicky.DAMAGE, 0, 100, 1),
-        PISTOL_COOLDOWN("guns.pistol.cooldown-ms", "Pistol cooldown (ms)", Material.STONE_HOE, Pistol.COOLDOWN_MILLIS, 0, 5000, 50),
-        RIFLE_COOLDOWN("guns.rifle.cooldown-ms", "Rifle cooldown (ms)", Material.IRON_HOE, Rifle.COOLDOWN_MILLIS, 0, 5000, 50),
-        BLICKY_COOLDOWN("guns.blicky.cooldown-ms", "My Blicky cooldown (ms)", Material.DIAMOND_HOE, MyBlicky.COOLDOWN_MILLIS, 0, 5000, 50),
-        PISTOL_SPEED("guns.pistol.projectile-speed", "Pistol projectile speed", Material.ARROW, Pistol.PROJECTILE_SPEED, 1, 10, 0.5),
-        RIFLE_SPEED("guns.rifle.projectile-speed", "Rifle projectile speed", Material.ARROW, Rifle.PROJECTILE_SPEED, 1, 10, 0.5),
-        BLICKY_SPEED("guns.blicky.projectile-speed", "My Blicky projectile speed", Material.SPECTRAL_ARROW, MyBlicky.PROJECTILE_SPEED, 1, 10, 0.5),
-        AMMO_BOX("guns.use-ammo-boxes", "Guns draw ammo from boxes", Material.ENDER_CHEST, true),
         AMMO_DISPLAY("display.ammo-scoreboard", "Ammo scoreboard", Material.PAPER, true),
-        GRAB_BLOCKS("gravity-gun.grab-blocks", "Gravity gun picks up blocks", Material.STONE, true),
-        GRAB_ENTITIES("gravity-gun.grab-entities", "Gravity gun picks up entities", Material.LEAD, true),
         GRAB_PLAYERS("gravity-gun.grab-players", "Gravity gun picks up players", Material.TOTEM_OF_UNDYING, true),
-        GRAB_RANGE("gravity-gun.grab-range", "Gravity gun reach (blocks)", Material.SPYGLASS, GravityGun.GRAB_RANGE, 2, 20, 1),
-        HOLD_DISTANCE("gravity-gun.hold-distance", "Gravity gun hold distance", Material.IRON_BARS, GravityGun.HOLD_DISTANCE, 2, 8, 0.5),
-        LAUNCH_SPEED("gravity-gun.launch-speed", "Gravity gun launch speed", Material.WIND_CHARGE, GravityGun.SHOOT_SPEED, 0.5, 8, 0.5),
-        GRAB_COOLDOWN("gravity-gun.cooldown-ms", "Gravity gun cooldown (ms)", Material.GLOWSTONE_DUST, 200, 0, 5000, 50),
         HEROBRINE("herobrine.enabled", "Herobrine sightings", Material.PLAYER_HEAD, true),
-        HEROBRINE_CHANCE("herobrine.chance-percent", "Herobrine chance per check (%)", Material.ENDER_EYE, 1, 0, 100, 0.5),
-        HEROBRINE_INTERVAL("herobrine.interval-seconds", "Herobrine check interval (seconds)", Material.CLOCK, 60, 5, 600, 5),
-        HEROBRINE_DURATION("herobrine.duration-ticks", "Herobrine visible time (ticks)", Material.REPEATER, 2, 1, 40, 1),
+        HEROBRINE_CHANCE("herobrine.chance-percent", "Herobrine chance per check (%)", Material.ENDER_EYE, 100, 0, 100, 0.5),
+        HEROBRINE_INTERVAL("herobrine.interval-seconds", "Herobrine check interval (seconds)", Material.CLOCK, 300, 5, 600, 5),
+        HEROBRINE_DURATION("herobrine.duration-ticks", "Herobrine visible time (ticks)", Material.REPEATER, 10, 1, 40, 1),
         MINECART_SPEED("minecart-speed-multiplier", "Minecart speed multiplier", Material.MINECART, 4, 1, 100, 0.5),
-        STICK_DEPTH("heavy-stick.depth", "Heavy Stick depth (blocks)", Material.STICK, 2, 0, 8, 1),
-        DUMMY_DAMAGE("display.target-dummy-damage", "Target dummy damage readout", Material.TARGET, true),
-        CONDENSER("energy-condenser.processing", "Energy Condenser processing", Material.BARREL, true),
-        EMC_DISPLAY("display.emc-tab-list", "EMC tab-list display", Material.NETHER_STAR, true),
-        TRANSMUTATION("transmutation.table-access", "Transmutation Table access", Material.POLISHED_BLACKSTONE_SLAB, true),
-        RECIPE_GUI("display.recipe-browser", "Recipe browser", Material.KNOWLEDGE_BOOK, true);
+        EMC_DISPLAY("display.emc-tab-list", "EMC tab-list display", Material.NETHER_STAR, true);
 
         final String path;
         final String label;
@@ -74,6 +52,55 @@ final class GameplaySettings {
         this.plugin = plugin;
     }
 
+    void migrate() {
+        var config = plugin.getConfig();
+        if (config.getInt("settings-version") >= 2) return;
+        for (String path : java.util.List.of(
+                "guns.dragon-damage",
+                "guns.pistol.damage",
+                "guns.rifle.damage",
+                "guns.blicky.damage",
+                "guns.pistol.cooldown-ms",
+                "guns.rifle.cooldown-ms",
+                "guns.blicky.cooldown-ms",
+                "guns.pistol.projectile-speed",
+                "guns.rifle.projectile-speed",
+                "guns.blicky.projectile-speed",
+                "guns.use-ammo-boxes",
+                "gravity-gun.grab-blocks",
+                "gravity-gun.grab-entities",
+                "gravity-gun.grab-range",
+                "gravity-gun.hold-distance",
+                "gravity-gun.launch-speed",
+                "gravity-gun.cooldown-ms",
+                "heavy-stick.depth",
+                "display.target-dummy-damage",
+                "energy-condenser.processing",
+                "transmutation.table-access",
+                "display.recipe-browser")) {
+            config.set(path, null);
+        }
+        for (String path : java.util.List.of("guns", "heavy-stick", "energy-condenser", "transmutation")) {
+            var section = config.getConfigurationSection(path);
+            if (section != null && section.getKeys(false).isEmpty()) config.set(path, null);
+        }
+        migrateDefault(Setting.HEROBRINE_CHANCE, 1);
+        migrateDefault(Setting.HEROBRINE_INTERVAL, 60);
+        migrateDefault(Setting.HEROBRINE_DURATION, 2);
+        config.set("settings-version", 2);
+        try {
+            save();
+        } catch (IOException e) {
+            plugin.getLogger().log(java.util.logging.Level.WARNING, "Could not migrate config.yml", e);
+        }
+    }
+
+    private void migrateDefault(Setting setting, double oldValue) {
+        if (plugin.getConfig().getDouble(setting.path, -1) == oldValue) {
+            plugin.getConfig().set(setting.path, null);
+        }
+    }
+
     double get(Setting setting) {
         if (setting.toggle()) {
             return plugin.getConfig().getBoolean(setting.path, setting.defaultValue != 0) ? 1 : 0;
@@ -94,18 +121,22 @@ final class GameplaySettings {
             plugin.getConfig().set(setting.path, value);
         }
         try {
-            Path directory = Files.createDirectories(plugin.getDataFolder().toPath());
-            Path temporary = Files.createTempFile(directory, "config-", ".tmp");
-            try {
-                plugin.getConfig().save(temporary.toFile());
-                Files.move(temporary, directory.resolve("config.yml"),
-                        StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } finally {
-                Files.deleteIfExists(temporary);
-            }
+            save();
         } catch (IOException e) {
             plugin.getConfig().set(setting.path, previous);
             throw e;
+        }
+    }
+
+    private void save() throws IOException {
+        Path directory = Files.createDirectories(plugin.getDataFolder().toPath());
+        Path temporary = Files.createTempFile(directory, "config-", ".tmp");
+        try {
+            plugin.getConfig().save(temporary.toFile());
+            Files.move(temporary, directory.resolve("config.yml"),
+                    StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        } finally {
+            Files.deleteIfExists(temporary);
         }
     }
 }

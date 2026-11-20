@@ -20,17 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static com.rgbeans.bullshit.bullshitadditions.GameplaySettings.Setting.*;
-
 public final class MyBlickyListener implements Listener {
 
     private final Map<UUID, Long> cooldowns = new HashMap<>();
-
-    private final GameplaySettings settings;
-
-    MyBlickyListener(GameplaySettings settings) {
-        this.settings = settings;
-    }
 
     @EventHandler
     public void onInteract(PlayerInteractEvent event) {
@@ -50,7 +42,7 @@ public final class MyBlickyListener implements Listener {
 
         long now = System.currentTimeMillis();
         Long last = cooldowns.get(player.getUniqueId());
-        if (last != null && now - last < settings.get(BLICKY_COOLDOWN)) {
+        if (last != null && now - last < MyBlicky.COOLDOWN_MILLIS) {
             return;
         }
 
@@ -76,8 +68,6 @@ public final class MyBlickyListener implements Listener {
             return true;
         }
 
-        if (!settings.enabled(AMMO_BOX)) return false;
-
         for (int i = 0; i < 36; i++) {
             ItemStack item = inv.getItem(i);
             if (AmmoBox.isAmmoBox(item) && AmmoBox.consumeAmmo(item, MyBlicky.AMMO_TYPE, 1)) {
@@ -95,9 +85,9 @@ public final class MyBlickyListener implements Listener {
         Snowball projectile = player.getWorld().spawn(eye, Snowball.class);
         projectile.setShooter(player);
         projectile.setGravity(false);
-        projectile.setVelocity(direction.multiply(settings.get(BLICKY_SPEED)));
+        projectile.setVelocity(direction.multiply(MyBlicky.PROJECTILE_SPEED));
         projectile.getPersistentDataContainer().set(GunListener.PROJECTILE_KEY, PersistentDataType.BOOLEAN, true);
-        projectile.getPersistentDataContainer().set(GunListener.DAMAGE_KEY, PersistentDataType.DOUBLE, settings.get(BLICKY_DAMAGE));
+        projectile.getPersistentDataContainer().set(GunListener.DAMAGE_KEY, PersistentDataType.DOUBLE, MyBlicky.DAMAGE);
         projectile.setItem(new ItemStack(MyBlicky.AMMO_TYPE));
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 0.6f);

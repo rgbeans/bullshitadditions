@@ -50,14 +50,29 @@ Placable item that spawns an invincible armor stand with a target block head and
 
 Run `/bsconfig` in game as an operator. Click an option to toggle it. For numbers, left-click increases, right-click decreases, Shift changes by five steps, and Q resets the default. Changes take effect immediately and save to `config.yml`.
 
-- **Guns**: Tune damage, projectile speed, and cooldowns, Ender Dragon hits, ammo-box use, and the ammo scoreboard.
-- **Gravity Gun**: Right-click to grab an entity or sneak and right-click a solid block to pick it up. Right-click again to launch, or left-click to release. Set block, entity, and player pickup separately, along with reach, hold distance, launch speed, and cooldown. Containers, other blocks with stored data, and unbreakable blocks cannot be picked up.
-- **Herobrine**: By default, each eligible player has a 1% chance per minute to see Herobrine for two ticks (0.1 seconds at 20 TPS). A sighting needs a visible spot in front of the player and is shown only to that player. Control the chance, interval, duration, or switch sightings off.
-- **Other features**: Set minecart speed, Heavy Stick depth, target-dummy damage readouts, Energy Condenser processing, Transmutation Table access, the EMC tab-list display, and the recipe browser.
+The menu controls the ammo scoreboard, Gravity Gun pickup of players, Herobrine sightings, minecart speed, and the EMC tab-list display.
+
+Herobrine checks for a visible spot in front of each eligible player once every five minutes by default. If there is a spot, the sighting lasts 10 ticks (0.5 seconds at 20 TPS) and is visible only to that player. The chance, interval, and duration are adjustable.
+
+The Gravity Gun picks up eligible blocks with sneak + right-click. Held blocks can pass through terrain without placing themselves. Right-click again to launch or left-click to release. Released blocks fall and settle normally, or drop as an item when released inside another block.
+
+## Block Placer and Block Breaker
+
+The Block Placer looks like an enchanted dropper. Its storage takes blocks by hand or hopper. It places one block in the empty space it faces. The Block Breaker looks like an enchanted dispenser. It breaks a block instantly with its installed pickaxe and stores the drops in its hopper-accessible output. It waits if the loot won't fit. Both machines skip multi-block structures, and the breaker skips containers and other blocks with stored data.
+
+Right-click for storage or sneak + right-click for controls:
+
+- **Clock** adjusts the interval from 1 to 1,200 ticks. Left-click adds one, right-click subtracts one, and Shift changes the interval by 20 ticks. The default is 20 ticks.
+- **Sunflower** burns the EMC-valued item on your cursor. Left-click burns the stack and right-click burns one. Each EMC powers one loaded tick, including time spent waiting for the next interval or an available target. Unloaded machines pause.
+- **Pickaxe** on the breaker installs or swaps a pickaxe. It uses vanilla tool drops, including Fortune and Silk Touch. Mending prevents wear and costs one extra EMC per successful break.
+
+Craft either machine with a dropper (placer) or dispenser (breaker) in the center, four iron ingots, three redstone, and a piston (placer) or diamond pickaxe (breaker) at the bottom center. Both recipes appear in `/recipes`.
 
 ## Commands
 | Command | Permission | Default |
 |---|---|---|
+| `/blockplacer` | `bullshitadditions.blockplacer` | OP |
+| `/blockbreaker` | `bullshitadditions.blockbreaker` | OP |
 | `/bsconfig` | `bullshitadditions.config` | OP |
 | `/emc get` | `bullshitadditions.emc` | Everyone |
 | `/emc reload` | `bullshitadditions.emc` | OP |
