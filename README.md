@@ -63,14 +63,21 @@ The Block Placer looks like an enchanted dropper. Its storage takes blocks by ha
 Right-click for storage or sneak + right-click for controls:
 
 - **Clock** adjusts the interval from 1 to 1,200 ticks. Left-click adds one, right-click subtracts one, and Shift changes the interval by 20 ticks. The default is 20 ticks.
-- **Sunflower** burns the EMC-valued item on your cursor. Left-click burns the stack and right-click burns one. Each EMC powers one loaded tick, including time spent waiting for the next interval or an available target. Unloaded machines pause.
+- **Sunflower** burns the EMC-valued item on your cursor. Left-click burns the stack and right-click burns one. A successful placement or break costs 1 EMC. Waiting, blocked targets, and a full output use no EMC. Unloaded machines pause.
 - **Pickaxe** on the breaker installs or swaps a pickaxe. It uses vanilla tool drops, including Fortune and Silk Touch. Mending prevents wear and costs one extra EMC per successful break.
 
 Craft either machine with a dropper (placer) or dispenser (breaker) in the center, four iron ingots, three redstone, and a piston (placer) or diamond pickaxe (breaker) at the bottom center. Both recipes appear in `/recipes`.
 
+## Upper
+
+An Upper is a copper-banded barrel that lifts items out of the storage container directly below it. It can also collect loose items in the block space below. It sends items into a storage container directly above by default. Sneak and right-click to cycle the output through up, north, east, south, and west. Right-click normally to open its buffer. Redstone power pauses transfers.
+
+Craft it with a hopper in the center, copper ingots directly above and on each side, and a piston directly below. The recipe appears in `/recipes`.
+
 ## Commands
 | Command | Permission | Default |
 |---|---|---|
+| `/upper` | `bullshitadditions.upper` | OP |
 | `/blockplacer` | `bullshitadditions.blockplacer` | OP |
 | `/blockbreaker` | `bullshitadditions.blockbreaker` | OP |
 | `/bsconfig` | `bullshitadditions.config` | OP |

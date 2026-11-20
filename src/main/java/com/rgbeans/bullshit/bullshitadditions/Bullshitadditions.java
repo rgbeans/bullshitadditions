@@ -39,6 +39,7 @@ public final class Bullshitadditions extends JavaPlugin {
     private ConfigMenu configMenu;
     private GravityGunListener gravityGunListener;
     private HerobrineSightings herobrine;
+    private Upper upper;
     private boolean showingEmc;
     private final Map<UUID, int[]> lastAmmoCounts = new HashMap<>();
 
@@ -60,6 +61,9 @@ public final class Bullshitadditions extends JavaPlugin {
         BlockMachines blockMachines = new BlockMachines(this);
         getServer().getPluginManager().registerEvents(blockMachines, this);
         blockMachines.start();
+        upper = new Upper(this);
+        getServer().getPluginManager().registerEvents(upper, this);
+        upper.start();
 
         getServer().getPluginManager().registerEvents(new GunListener(), this);
         getServer().getPluginManager().registerEvents(new RifleListener(), this);
@@ -89,6 +93,7 @@ public final class Bullshitadditions extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (upper != null) upper.stop();
         if (gravityGunListener != null) gravityGunListener.releaseAll();
         if (herobrine != null) herobrine.clear();
         if (playerDataManager != null) playerDataManager.saveAll();
@@ -165,6 +170,10 @@ public final class Bullshitadditions extends JavaPlugin {
 
         if (name.equals("transmutationtable")) {
             return giveItem(sender, TransmutationBlock.createItem(), "Transmutation Table");
+        }
+
+        if (name.equals("upper")) {
+            return giveItem(sender, Upper.createItem(), "Upper");
         }
 
         if (name.equals("blockplacer")) {
@@ -378,6 +387,19 @@ public final class Bullshitadditions extends JavaPlugin {
     }
 
     private void registerRecipes() {
+        ItemStack upperItem = Upper.createItem();
+        ShapedRecipe upperRecipe = new ShapedRecipe(new NamespacedKey(this, "upper"), upperItem);
+        upperRecipe.shape(" C ", "CHC", " P ");
+        upperRecipe.setIngredient('C', Material.COPPER_INGOT);
+        upperRecipe.setIngredient('H', Material.HOPPER);
+        upperRecipe.setIngredient('P', Material.PISTON);
+        getServer().addRecipe(upperRecipe);
+        RecipeRegistry.register(new RecipeInfo("Upper", upperItem, new ItemStack[]{
+                null, new ItemStack(Material.COPPER_INGOT), null,
+                new ItemStack(Material.COPPER_INGOT), new ItemStack(Material.HOPPER), new ItemStack(Material.COPPER_INGOT),
+                null, new ItemStack(Material.PISTON), null
+        }));
+
         registerBlockMachineRecipe(BlockMachines.Kind.PLACER, "block_placer", Material.PISTON);
         registerBlockMachineRecipe(BlockMachines.Kind.BREAKER, "block_breaker", Material.DIAMOND_PICKAXE);
 
