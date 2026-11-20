@@ -8,6 +8,10 @@ api-version: '26.1.2'
 load: POSTWORLD
 
 commands:
+  upper:
+    description: Gives you an Upper
+    usage: /upper
+    permission: bullshitadditions.upper
   blockplacer:
     description: Gives you a Block Placer
     usage: /blockplacer
@@ -97,6 +101,9 @@ commands:
     permission-message: You do not have permission.
 
 permissions:
+  bullshitadditions.upper:
+    description: Allows spawning an Upper
+    default: op
   bullshitadditions.blockplacer:
     description: Allows spawning a Block Placer
     default: op

@@ -292,7 +292,7 @@ final class BlockMachines implements Listener {
 
     private void operate(Container machine) {
         var data = machine.getPersistentDataContainer();
-        long balance = fuel(machine) - 1;
+        long balance = fuel(machine);
         int remaining = data.getOrDefault(REMAINING, PersistentDataType.INTEGER, interval(machine)) - 1;
         if (remaining <= 0) {
             remaining = interval(machine);
@@ -301,8 +301,11 @@ final class BlockMachines implements Listener {
             if (target.getWorld().isChunkLoaded(target.getX() >> 4, target.getZ() >> 4)
                     && target.getY() >= target.getWorld().getMinHeight() && target.getY() < target.getWorld().getMaxHeight()
                     && target.getWorld().getWorldBorder().isInside(target.getLocation().add(0.5, 0.5, 0.5))) {
-                if (machine.getType() == Material.DROPPER) place(machine, target);
-                else balance -= breakBlock(machine, target, balance);
+                if (machine.getType() == Material.DROPPER) {
+                    if (place(machine, target)) balance--;
+                } else {
+                    balance -= breakBlock(machine, target, balance);
+                }
             }
         }
         data.set(FUEL, PersistentDataType.LONG, balance);
@@ -310,8 +313,8 @@ final class BlockMachines implements Listener {
         machine.update(false, false);
     }
 
-    private void place(Container machine, Block target) {
-        if (!target.isEmpty()) return;
+    private boolean place(Container machine, Block target) {
+        if (!target.isEmpty()) return false;
         Inventory inventory = machine.getSnapshotInventory();
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             ItemStack item = inventory.getItem(slot);
@@ -320,12 +323,13 @@ final class BlockMachines implements Listener {
             if (isMultiBlock(blockData)
                     || !blockData.isSupported(target) || !target.canPlace(blockData)) continue;
             var attempt = new BlockDispenseEvent(machine.getBlock(), item.asOne(), new Vector(target.getX(), target.getY(), target.getZ()));
-            if (!attempt.callEvent() || !target.isEmpty() || !attempt.getItem().isSimilar(item)) return;
+            if (!attempt.callEvent() || !target.isEmpty() || !attempt.getItem().isSimilar(item)) return false;
             target.setBlockData(blockData);
             item.setAmount(item.getAmount() - 1);
             inventory.setItem(slot, item.isEmpty() ? null : item);
-            return;
+            return true;
         }
+        return false;
     }
 
     private boolean isMultiBlock(BlockData data) {
@@ -339,7 +343,8 @@ final class BlockMachines implements Listener {
         ItemStack pickaxe = tool(machine);
         if (pickaxe == null || !target.isPreferredTool(pickaxe)) return 0;
         boolean mending = pickaxe.containsEnchantment(Enchantment.MENDING);
-        if (mending && balance < MENDING_COST) return 0;
+        int cost = 1 + (mending ? MENDING_COST : 0);
+        if (balance < cost) return 0;
 
         Inventory inventory = machine.getSnapshotInventory();
         List<ItemStack> drops = new ArrayList<>(target.getDrops(pickaxe));
@@ -355,7 +360,7 @@ final class BlockMachines implements Listener {
         target.setType(Material.AIR);
         inventory.setContents(staged.getContents());
         if (!mending) wearPickaxe(machine, pickaxe);
-        return mending ? MENDING_COST : 0;
+        return cost;
     }
 
     private void wearPickaxe(Container machine, ItemStack pickaxe) {
@@ -429,7 +434,7 @@ final class BlockMachines implements Listener {
                     "Left +1 / Right -1", "Shift changes by 20 ticks"));
             inventory.setItem(FUEL_SLOT, icon(Material.SUNFLOWER, "Fuel: " + EMCEngine.formatEmc(fuel(machine)) + " EMC",
                     "Click with an EMC item to burn it", "Left: entire stack / Right: one item",
-                    "1 EMC per loaded operating tick"));
+                    "1 EMC per successful action"));
             if (kind == Kind.BREAKER) {
                 ItemStack pickaxe = tool(machine);
                 inventory.setItem(TOOL_SLOT, pickaxe != null ? pickaxe : icon(Material.IRON_PICKAXE,
