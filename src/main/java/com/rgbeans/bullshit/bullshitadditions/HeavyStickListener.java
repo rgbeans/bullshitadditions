@@ -10,14 +10,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.ItemStack;
 
-import static com.rgbeans.bullshit.bullshitadditions.GameplaySettings.Setting.STICK_DEPTH;
-
 public final class HeavyStickListener implements Listener {
-    private final GameplaySettings settings;
-
-    HeavyStickListener(GameplaySettings settings) {
-        this.settings = settings;
-    }
 
     @EventHandler(priority = EventPriority.NORMAL)
     public void onEntityDamage(EntityDamageByEntityEvent event) {
@@ -29,7 +22,7 @@ public final class HeavyStickListener implements Listener {
         event.setCancelled(true);
 
         Entity target = event.getEntity();
-        Location dest = target.getLocation().subtract(0, settings.get(STICK_DEPTH), 0);
+        Location dest = target.getLocation().subtract(0, 2, 0);
         dest.setX(Math.floor(dest.getX()) + 0.5);
         dest.setZ(Math.floor(dest.getZ()) + 0.5);
 

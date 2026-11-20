@@ -79,20 +79,14 @@ public final class TransmutationTable implements Listener {
 
     private final JavaPlugin plugin;
     private final PlayerDataManager dataManager;
-    private final GameplaySettings settings;
     private final Map<UUID, Integer> playerPages = new HashMap<>();
 
-    TransmutationTable(JavaPlugin plugin, PlayerDataManager dataManager, GameplaySettings settings) {
-        this.settings = settings;
+    TransmutationTable(JavaPlugin plugin, PlayerDataManager dataManager) {
         this.plugin = plugin;
         this.dataManager = dataManager;
     }
 
     public void open(Player player) {
-        if (!settings.enabled(GameplaySettings.Setting.TRANSMUTATION)) {
-            player.sendMessage("§cThe Transmutation Table is disabled.");
-            return;
-        }
         open(player, 0);
     }
 
@@ -167,10 +161,6 @@ public final class TransmutationTable implements Listener {
         if (event.getInventory().getHolder() != null) return;
 
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (!settings.enabled(GameplaySettings.Setting.TRANSMUTATION)) {
-            if (event.getRawSlot() < SIZE || event.isShiftClick()) event.setCancelled(true);
-            return;
-        }
         int slot = event.getRawSlot();
         if (slot < 0) return;
 

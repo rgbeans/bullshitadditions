@@ -51,15 +51,19 @@ public final class Bullshitadditions extends JavaPlugin {
         registerTransmutableItems();
 
         settings = new GameplaySettings(this);
+        settings.migrate();
         configMenu = new ConfigMenu(settings, this::settingChanged, getLogger());
         playerDataManager = new PlayerDataManager(this);
-        transmutationTable = new TransmutationTable(this, playerDataManager, settings);
+        transmutationTable = new TransmutationTable(this, playerDataManager);
         recipeGui = new RecipeGui(this);
-        energyCondenser = new EnergyCondenser(this, settings);
+        energyCondenser = new EnergyCondenser(this);
+        BlockMachines blockMachines = new BlockMachines(this);
+        getServer().getPluginManager().registerEvents(blockMachines, this);
+        blockMachines.start();
 
-        getServer().getPluginManager().registerEvents(new GunListener(settings), this);
-        getServer().getPluginManager().registerEvents(new RifleListener(settings), this);
-        getServer().getPluginManager().registerEvents(new MyBlickyListener(settings), this);
+        getServer().getPluginManager().registerEvents(new GunListener(), this);
+        getServer().getPluginManager().registerEvents(new RifleListener(), this);
+        getServer().getPluginManager().registerEvents(new MyBlickyListener(), this);
         gravityGunListener = new GravityGunListener(this, settings);
         getServer().getPluginManager().registerEvents(gravityGunListener, this);
         getServer().getPluginManager().registerEvents(configMenu, this);
@@ -67,8 +71,8 @@ public final class Bullshitadditions extends JavaPlugin {
         minecartListener = new MinecartListener(MinecartListener.VANILLA_MAX_SPEED * settings.get(MINECART_SPEED));
         getServer().getPluginManager().registerEvents(minecartListener, this);
         minecartListener.applyToLoaded(getServer());
-        getServer().getPluginManager().registerEvents(new HeavyStickListener(settings), this);
-        getServer().getPluginManager().registerEvents(new TargetDummyListener(settings), this);
+        getServer().getPluginManager().registerEvents(new HeavyStickListener(), this);
+        getServer().getPluginManager().registerEvents(new TargetDummyListener(), this);
         getServer().getPluginManager().registerEvents(new AmmoBoxListener(), this);
         getServer().getPluginManager().registerEvents(recipeGui, this);
         getServer().getPluginManager().registerEvents(transmutationTable, this);
@@ -142,10 +146,6 @@ public final class Bullshitadditions extends JavaPlugin {
         }
 
         if (name.equals("recipes")) {
-            if (!settings.enabled(RECIPE_GUI)) {
-                sender.sendMessage("§cThe recipe browser is disabled.");
-                return true;
-            }
             if (!(sender instanceof Player player)) {
                 sender.sendMessage("Only players can use this command.");
                 return true;
@@ -165,6 +165,14 @@ public final class Bullshitadditions extends JavaPlugin {
 
         if (name.equals("transmutationtable")) {
             return giveItem(sender, TransmutationBlock.createItem(), "Transmutation Table");
+        }
+
+        if (name.equals("blockplacer")) {
+            return giveItem(sender, BlockMachines.createItem(BlockMachines.Kind.PLACER), "Block Placer");
+        }
+
+        if (name.equals("blockbreaker")) {
+            return giveItem(sender, BlockMachines.createItem(BlockMachines.Kind.BREAKER), "Block Breaker");
         }
 
         if (name.equals("energycondenser")) {
@@ -353,7 +361,26 @@ public final class Bullshitadditions extends JavaPlugin {
         return true;
     }
 
+    private void registerBlockMachineRecipe(BlockMachines.Kind kind, String key, Material mechanism) {
+        ItemStack result = BlockMachines.createItem(kind);
+        ShapedRecipe recipe = new ShapedRecipe(new NamespacedKey(this, key), result);
+        recipe.shape("IRI", "RMR", "IPI");
+        recipe.setIngredient('I', Material.IRON_INGOT);
+        recipe.setIngredient('R', Material.REDSTONE);
+        recipe.setIngredient('M', kind.material);
+        recipe.setIngredient('P', mechanism);
+        getServer().addRecipe(recipe);
+        RecipeRegistry.register(new RecipeInfo(kind.title, result, new ItemStack[]{
+                new ItemStack(Material.IRON_INGOT), new ItemStack(Material.REDSTONE), new ItemStack(Material.IRON_INGOT),
+                new ItemStack(Material.REDSTONE), new ItemStack(kind.material), new ItemStack(Material.REDSTONE),
+                new ItemStack(Material.IRON_INGOT), new ItemStack(mechanism), new ItemStack(Material.IRON_INGOT)
+        }));
+    }
+
     private void registerRecipes() {
+        registerBlockMachineRecipe(BlockMachines.Kind.PLACER, "block_placer", Material.PISTON);
+        registerBlockMachineRecipe(BlockMachines.Kind.BREAKER, "block_breaker", Material.DIAMOND_PICKAXE);
+
         ItemStack[] pistolIngredients = new ItemStack[9];
         pistolIngredients[1] = new ItemStack(Material.IRON_NUGGET);
         pistolIngredients[3] = new ItemStack(Material.IRON_NUGGET);
@@ -674,7 +701,7 @@ public final class Bullshitadditions extends JavaPlugin {
     private void settingChanged(Setting setting) {
         switch (setting) {
             case MINECART_SPEED -> applyMinecartSpeed();
-            case AMMO_BOX, AMMO_DISPLAY -> updateAmmoScoreboards();
+            case AMMO_DISPLAY -> updateAmmoScoreboards();
             case EMC_DISPLAY -> updateEmcTabList();
             case HEROBRINE -> {
                 if (!settings.enabled(HEROBRINE)) herobrine.clear();
@@ -743,7 +770,7 @@ public final class Bullshitadditions extends JavaPlugin {
             if (item != null && item.getType() == type) {
                 count += item.getAmount();
             }
-            if (settings.enabled(AMMO_BOX) && AmmoBox.isAmmoBox(item)) {
+            if (AmmoBox.isAmmoBox(item)) {
                 count += AmmoBox.countAmmo(item, type);
             }
         }
