@@ -91,20 +91,36 @@ public final class EnergyCondenser implements Listener {
         condenserLocations.removeAll(stale);
     }
 
+    private static final String GRAY_MATTER_TARGET = "gray_matter";
+
+    private record Target(ItemStack item, String name, long emc) {}
+
+    private Target resolveTarget(String key) {
+        if (key == null || key.isEmpty() || key.equals("none")) return null;
+        if (GRAY_MATTER_TARGET.equals(key)) {
+            var grayMatter = TransmutationTable.getTransmutable(GRAY_MATTER_TARGET);
+            return grayMatter == null || grayMatter.emc() <= 0 ? null
+                    : new Target(GrayMatter.create(), "Gray Matter", grayMatter.emc());
+        }
+        Material material = Material.getMaterial(key);
+        if (material == null || !material.isItem() || material.isAir()) return null;
+        Long emc = EMCEngine.get(material);
+        return emc == null || emc <= 0 ? null : new Target(new ItemStack(material), formatMaterialName(material), emc);
+    }
+
     private void processBarrel(Barrel barrel) {
         Inventory inv = barrel.getSnapshotInventory();
 
         String targetName = barrel.getPersistentDataContainer()
                 .get(TARGET_KEY, PersistentDataType.STRING);
-        Material targetMat = targetName != null && !targetName.isEmpty() && !targetName.equals("none")
-                ? Material.getMaterial(targetName) : null;
+        Target target = resolveTarget(targetName);
         long stored = barrel.getPersistentDataContainer()
                 .getOrDefault(EMC_KEY, PersistentDataType.LONG, 0L);
 
         for (int i = 0; i < inv.getSize(); i++) {
             ItemStack item = inv.getItem(i);
             if (item == null || item.isEmpty()) continue;
-            if (targetMat != null && item.getType() == targetMat) continue;
+            if (GrayMatter.isItem(item) || target != null && item.isSimilar(target.item())) continue;
             if (hasCustomMeta(item)) { inv.setItem(i, null); continue; }
             Long value = EMCEngine.get(item.getType());
             if (value != null) {
@@ -115,41 +131,38 @@ public final class EnergyCondenser implements Listener {
             }
         }
 
-        if (targetMat != null && stored > 0) {
-            Long targetEmc = EMCEngine.get(targetMat);
-            if (targetEmc != null && targetEmc > 0 && stored >= targetEmc) {
-                while (stored >= targetEmc) {
-                    int slot = findSpaceFor(inv, targetMat);
-                    if (slot < 0) break;
-                    ItemStack existing = inv.getItem(slot);
-                    if (existing == null || existing.isEmpty()) {
-                        inv.setItem(slot, new ItemStack(targetMat, 1));
-                    } else {
-                        existing.setAmount(existing.getAmount() + 1);
-                    }
-                    stored -= targetEmc;
+        if (target != null) {
+            while (stored >= target.emc()) {
+                int slot = findSpaceFor(inv, target.item());
+                if (slot < 0) break;
+                ItemStack existing = inv.getItem(slot);
+                if (existing == null || existing.isEmpty()) {
+                    inv.setItem(slot, target.item().clone());
+                } else {
+                    existing.setAmount(existing.getAmount() + 1);
                 }
+                stored -= target.emc();
             }
         }
 
         if (stored > MAX_EMC) stored = MAX_EMC;
         barrel.getPersistentDataContainer().set(EMC_KEY, PersistentDataType.LONG, stored);
-        updateBarrelName(barrel, targetMat);
+        updateBarrelName(barrel, target);
         barrel.update(true, false);
 
         refreshOpenControls(barrel);
     }
 
-    private void updateBarrelName(Barrel barrel, Material targetMat) {
+    private void updateBarrelName(Barrel barrel, Target target) {
         String name = ChatColor.DARK_PURPLE + "Energy Condenser";
-        if (targetMat != null) {
+        if (target != null) {
             name += " " + ChatColor.GRAY + "(Target: " + ChatColor.WHITE
-                    + formatMaterialName(targetMat) + ChatColor.GRAY + ")";
+                    + target.name() + ChatColor.GRAY + ")";
         }
         barrel.setCustomName(name);
     }
 
-    private int findSpaceFor(Inventory inv, Material mat) {
+    private int findSpaceFor(Inventory inv, ItemStack prototype) {
         int firstEmpty = -1;
         for (int i = 0; i < inv.getSize(); i++) {
             ItemStack item = inv.getItem(i);
@@ -157,7 +170,7 @@ public final class EnergyCondenser implements Listener {
                 if (firstEmpty < 0) firstEmpty = i;
                 continue;
             }
-            if (item.getType() == mat && item.getAmount() < mat.getMaxStackSize()) {
+            if (item.isSimilar(prototype) && item.getAmount() < prototype.getMaxStackSize()) {
                 return i;
             }
         }
@@ -184,21 +197,9 @@ public final class EnergyCondenser implements Listener {
     }
 
     private void fillControlPanel(Inventory inv, long stored, String targetName) {
-        Material targetMat = null;
-        long targetEmc = 0;
-        if (targetName != null && !targetName.isEmpty() && !targetName.equals("none")) {
-            targetMat = Material.getMaterial(targetName);
-        }
-        if (targetMat != null) {
-            Long val = EMCEngine.get(targetMat);
-            if (val != null) targetEmc = val;
-        }
-
-        if (targetMat != null) {
-            inv.setItem(C_TARGET, new ItemStack(targetMat));
-        } else {
-            inv.setItem(C_TARGET, null);
-        }
+        Target target = resolveTarget(targetName);
+        long targetEmc = target == null ? 0 : target.emc();
+        inv.setItem(C_TARGET, target == null ? null : target.item());
 
         int filled = 0;
         int partial = -1;
@@ -245,8 +246,8 @@ public final class EnergyCondenser implements Listener {
         ItemStack info = new ItemStack(Material.SUNFLOWER);
         ItemMeta infoMeta = info.getItemMeta();
         infoMeta.setDisplayName(ChatColor.GOLD + "Stored: " + ChatColor.WHITE + EMCEngine.formatEmc(stored));
-        infoMeta.setLore(targetMat != null
-                ? List.of(ChatColor.GRAY + "Target: " + ChatColor.WHITE + formatMaterialName(targetMat)
+        infoMeta.setLore(target != null
+                ? List.of(ChatColor.GRAY + "Target: " + ChatColor.WHITE + target.name()
                     + " (" + EMCEngine.formatEmc(targetEmc) + " EMC)")
                 : List.of(ChatColor.GRAY + "Target: " + ChatColor.RED + "Not set"));
         info.setItemMeta(infoMeta);
@@ -392,24 +393,26 @@ public final class EnergyCondenser implements Listener {
     private void handleControlTarget(Player player, Block block, InventoryClickEvent event) {
         ItemStack cursor = event.getCursor();
         if (cursor == null || cursor.isEmpty()) return;
-        if (hasCustomMeta(cursor)) {
+        boolean grayMatter = GrayMatter.isItem(cursor);
+        if (!grayMatter && hasCustomMeta(cursor)) {
             player.sendActionBar(ChatColor.RED + "Custom items cannot be targets!");
             return;
         }
-        Long val = EMCEngine.get(cursor.getType());
-        if (val == null) {
+        String targetKey = grayMatter ? GRAY_MATTER_TARGET : cursor.getType().name();
+        Target target = resolveTarget(targetKey);
+        if (target == null) {
             player.sendActionBar(ChatColor.RED + "This item has no EMC value!");
             return;
         }
 
         String prev = getTargetString(block);
-        setTargetString(block, cursor.getType().name());
-        if (!cursor.getType().name().equals(prev)) {
+        setTargetString(block, targetKey);
+        if (!targetKey.equals(prev)) {
             setEmc(block, 0L);
         }
 
-        player.sendActionBar(ChatColor.GREEN + "Target: " + formatMaterialName(cursor.getType())
-                + " (" + EMCEngine.formatEmc(val) + " EMC)");
+        player.sendActionBar(ChatColor.GREEN + "Target: " + target.name()
+                + " (" + EMCEngine.formatEmc(target.emc()) + " EMC)");
         player.playSound(player.getLocation(), Sound.BLOCK_END_PORTAL_FRAME_FILL, 0.5f, 1.2f);
 
         plugin.getServer().getScheduler().runTask(plugin, () -> {
