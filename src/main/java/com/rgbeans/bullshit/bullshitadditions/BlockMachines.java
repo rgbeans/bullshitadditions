@@ -50,7 +50,7 @@ import java.util.Set;
 import java.util.UUID;
 
 final class BlockMachines implements Listener {
-    private static final NamespacedKey MACHINE = key("block_machine");
+    static final NamespacedKey MACHINE = key("block_machine");
     private static final NamespacedKey INSTANCE = key("machine_instance");
     private static final NamespacedKey FUEL = key("machine_fuel");
     private static final NamespacedKey INTERVAL = key("machine_interval");

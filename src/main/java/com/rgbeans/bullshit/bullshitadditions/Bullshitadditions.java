@@ -627,6 +627,13 @@ public final class Bullshitadditions extends JavaPlugin {
     }
 
     private void registerTransmutableItems() {
+        registerCraftedTransmutable("upper", Material.BARREL, Upper::createItem, Upper.KEY);
+        registerCraftedTransmutable("block_breaker", Material.DISPENSER,
+                () -> BlockMachines.createItem(BlockMachines.Kind.BREAKER), BlockMachines.MACHINE);
+        registerCraftedTransmutable("block_placer", Material.DROPPER,
+                () -> BlockMachines.createItem(BlockMachines.Kind.PLACER), BlockMachines.MACHINE);
+
+
         TransmutationTable.registerTransmutable(new TransmutationTable.TransmutableItem(
                 "energy_condenser",
                 Material.BARREL,
@@ -682,6 +689,29 @@ public final class Bullshitadditions extends JavaPlugin {
                 HeavyStick.KEY,
                 EMCEngine.get(Material.IRON_INGOT) * 2
         ));
+    }
+
+    private void registerCraftedTransmutable(String key, Material material,
+                                            java.util.function.Supplier<ItemStack> creator, NamespacedKey itemKey) {
+        if (!(getServer().getRecipe(new NamespacedKey(this, key)) instanceof ShapedRecipe recipe)) return;
+        var ingredients = recipe.getIngredientMap();
+        long emc = 0;
+        for (String row : recipe.getShape()) {
+            for (int slot = 0; slot < row.length(); slot++) {
+                ItemStack ingredient = ingredients.get(row.charAt(slot));
+                if (ingredient == null) continue;
+                Long value = EMCEngine.get(ingredient.getType());
+                if (value == null || value <= 0) {
+                    getLogger().warning("Cannot register " + key + " for transmutation: no EMC for " + ingredient.getType());
+                    return;
+                }
+                emc += value * ingredient.getAmount();
+            }
+        }
+        if (emc > 0) {
+            TransmutationTable.registerTransmutable(new TransmutationTable.TransmutableItem(
+                    key, material, creator, itemKey, emc));
+        }
     }
 
     private boolean handleMinecartSpeed(CommandSender sender, String[] args) {

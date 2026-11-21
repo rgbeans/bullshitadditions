@@ -43,7 +43,7 @@ import java.util.Locale;
 import java.util.Map;
 
 final class Upper implements Listener {
-    private static final NamespacedKey KEY = new NamespacedKey("bullshitadditions", "upper");
+    static final NamespacedKey KEY = new NamespacedKey("bullshitadditions", "upper");
     private static final NamespacedKey OUTPUT = new NamespacedKey("bullshitadditions", "upper_output");
     private static final List<BlockFace> OUTPUTS = List.of(
             BlockFace.UP, BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);

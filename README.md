@@ -74,6 +74,8 @@ An Upper is a copper-banded barrel that lifts items out of the storage container
 
 Craft it with a hopper in the center, copper ingots directly above and on each side, and a piston directly below. The recipe appears in `/recipes`.
 
+The Transmutation Table can learn and recreate the Upper, Block Breaker, and Block Placer at their crafting ingredient EMC cost.
+
 ## Commands
 | Command | Permission | Default |
 |---|---|---|
