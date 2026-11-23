@@ -78,9 +78,9 @@ The Transmutation Table can learn and recreate the Upper, Block Breaker, and Blo
 
 ## Hopper Filters
 
-Sneak + right-click any vanilla hopper with an empty hand to open its filter. Click a slot with an item on the cursor to allow that item type. The item stays on your cursor. Right-click a filter slot to clear it. Clear every slot to accept all items again.
+Sneak + right-click any vanilla hopper with an empty hand to open its filter. Click the single filter slot with an item on the cursor to allow only that item type. The item stays on your cursor. Right-click the slot to clear the filter. Remove any incompatible items from the hopper before setting a new filter.
 
-The filter matches item types for automatic transfers and ground-item pickups. You can still open the hopper normally to manage its inventory. Filters stay on the placed hopper across restarts.
+The filter matches item types for manual deposits, automatic transfers, and ground-item pickups. You can still open the hopper normally to manage its inventory. Filters stay on the placed hopper across restarts.
 
 ## Commands
 | Command | Permission | Default |

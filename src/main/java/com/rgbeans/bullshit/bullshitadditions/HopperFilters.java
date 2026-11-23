@@ -21,6 +21,7 @@ import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -31,7 +32,7 @@ import java.util.Arrays;
 
 final class HopperFilters implements Listener {
     private static final NamespacedKey FILTER = new NamespacedKey("bullshitadditions", "hopper_filter");
-    private static final int FILTER_SLOTS = 8;
+    private static final int FILTER_SLOT = 4;
 
     private final Plugin plugin;
 
@@ -106,7 +107,13 @@ final class HopperFilters implements Listener {
     }
 
     private static boolean matches(String filter, ItemStack item) {
-        return filter.contains("," + item.getType().name() + ",");
+        String material = item.getType().name();
+        if (!filter.startsWith(",")) return filter.equals(material);
+        // Accept the first populated slot from the earlier multi-slot build.
+        int start = 1;
+        while (start < filter.length() && filter.charAt(start) == ',') start++;
+        int end = filter.indexOf(',', start);
+        return end - start == material.length() && filter.startsWith(material, start);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -118,17 +125,22 @@ final class HopperFilters implements Listener {
 
         event.setCancelled(true);
         Menu menu = new Menu(block.getLocation());
-        menu.refresh(readSlots(hopper));
+        menu.refresh(readMaterial(hopper));
         event.getPlayer().openInventory(menu.inventory);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onClick(InventoryClickEvent event) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof Menu menu)) return;
+        Inventory top = event.getView().getTopInventory();
+        if (top.getType() == InventoryType.HOPPER && top.getHolder(false) instanceof Hopper hopper) {
+            checkManualDeposit(event, top, filter(hopper));
+            return;
+        }
+        if (!(top.getHolder() instanceof Menu menu)) return;
         int slot = event.getRawSlot();
         if (slot >= menu.inventory.getSize() && !event.isShiftClick() && event.getClick() != ClickType.DOUBLE_CLICK) return;
         event.setCancelled(true);
-        if (slot < 0 || slot >= FILTER_SLOTS || (event.getClick() != ClickType.LEFT && event.getClick() != ClickType.RIGHT)) return;
+        if (slot != FILTER_SLOT || (event.getClick() != ClickType.LEFT && event.getClick() != ClickType.RIGHT)) return;
 
         Location location = menu.location;
         Location viewer = event.getWhoClicked().getLocation();
@@ -136,43 +148,68 @@ final class HopperFilters implements Listener {
                 || !location.getWorld().isChunkLoaded(location.getBlockX() >> 4, location.getBlockZ() >> 4)
                 || !(location.getBlock().getState() instanceof Hopper hopper)) return;
 
-        Material[] slots = readSlots(hopper);
         ItemStack cursor = event.getCursor();
-        slots[slot] = event.getClick() == ClickType.RIGHT || cursor.isEmpty() ? null : cursor.getType();
-        var data = hopper.getPersistentDataContainer();
-        if (Arrays.stream(slots).allMatch(material -> material == null)) {
-            data.remove(FILTER);
-        } else {
-            // Delimit both sides for exact material matching without parsing on each transfer.
-            StringBuilder encoded = new StringBuilder(",");
-            for (Material material : slots) encoded.append(material == null ? "" : material.name()).append(',');
-            data.set(FILTER, PersistentDataType.STRING, encoded.toString());
+        Material allowed = event.getClick() == ClickType.RIGHT || cursor.isEmpty() ? null : cursor.getType();
+        if (allowed != null && Arrays.stream(hopper.getInventory().getStorageContents())
+                .anyMatch(item -> item != null && !item.isEmpty() && item.getType() != allowed)) {
+            event.getWhoClicked().sendMessage(Component.text("Remove other item types from this hopper first.", NamedTextColor.RED));
+            return;
         }
+        var data = hopper.getPersistentDataContainer();
+        if (allowed == null) data.remove(FILTER);
+        else data.set(FILTER, PersistentDataType.STRING, allowed.name());
         if (hopper.update(false, false)) {
             for (var player : location.getWorld().getPlayers()) {
                 if (player.getOpenInventory().getTopInventory().getHolder() instanceof Menu other
-                        && other.location.equals(location)) other.refresh(slots);
+                        && other.location.equals(location)) other.refresh(allowed);
             }
         }
     }
 
-    @EventHandler
+    private void checkManualDeposit(InventoryClickEvent event, Inventory top, String filter) {
+        if (filter == null || event.getRawSlot() < 0) return;
+        ItemStack incoming;
+        if (event.getRawSlot() >= top.getSize()) {
+            if (event.getAction() != org.bukkit.event.inventory.InventoryAction.MOVE_TO_OTHER_INVENTORY) return;
+            incoming = event.getCurrentItem();
+        } else {
+            incoming = switch (event.getAction()) {
+                case PLACE_ALL, PLACE_SOME, PLACE_ONE, SWAP_WITH_CURSOR -> event.getCursor();
+                case HOTBAR_SWAP, HOTBAR_MOVE_AND_READD -> {
+                    if (event.getClick() == ClickType.SWAP_OFFHAND && event.getWhoClicked() instanceof Player player) {
+                        yield player.getInventory().getItemInOffHand();
+                    }
+                    int button = event.getHotbarButton();
+                    yield button >= 0 ? event.getWhoClicked().getInventory().getItem(button) : null;
+                }
+                default -> null;
+            };
+        }
+        if (incoming != null && !incoming.isEmpty() && !matches(filter, incoming)) event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onDrag(InventoryDragEvent event) {
-        if (event.getView().getTopInventory().getHolder() instanceof Menu menu
-                && event.getRawSlots().stream().anyMatch(slot -> slot < menu.inventory.getSize())) {
-            event.setCancelled(true);
+        Inventory top = event.getView().getTopInventory();
+        if (top.getHolder() instanceof Menu) {
+            if (event.getRawSlots().stream().anyMatch(slot -> slot < top.getSize())) event.setCancelled(true);
+        } else if (top.getType() == InventoryType.HOPPER && top.getHolder(false) instanceof Hopper hopper) {
+            String filter = filter(hopper);
+            if (filter != null && event.getNewItems().entrySet().stream()
+                    .anyMatch(entry -> entry.getKey() < top.getSize() && !matches(filter, entry.getValue()))) {
+                event.setCancelled(true);
+            }
         }
     }
 
-    private static Material[] readSlots(Hopper hopper) {
-        Material[] slots = new Material[FILTER_SLOTS];
-        String filter = hopper.getPersistentDataContainer().get(FILTER, PersistentDataType.STRING);
-        if (filter == null) return slots;
-        String[] entries = filter.split(",", -1);
-        for (int i = 0; i < slots.length && i + 1 < entries.length; i++) {
-            if (!entries[i + 1].isEmpty()) slots[i] = Material.getMaterial(entries[i + 1]);
+    private static Material readMaterial(Hopper hopper) {
+        String saved = filter(hopper);
+        if (saved == null) return null;
+        if (!saved.startsWith(",")) return Material.getMaterial(saved);
+        for (String entry : saved.split(",")) {
+            if (!entry.isEmpty()) return Material.getMaterial(entry);
         }
-        return slots;
+        return null;
     }
 
     private static final class Menu implements InventoryHolder {
@@ -184,19 +221,19 @@ final class HopperFilters implements Listener {
         @Override
         public Inventory getInventory() { return inventory; }
 
-        void refresh(Material[] slots) {
-            for (int i = 0; i < slots.length; i++) {
-                inventory.setItem(i, slots[i] == null ? null : new ItemStack(slots[i]));
-            }
-            ItemStack info = new ItemStack(Material.HOPPER);
-            info.editMeta(meta -> {
-                meta.displayName(Component.text("Allowed item types", NamedTextColor.GOLD));
+        void refresh(Material allowed) {
+            ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+            filler.editMeta(meta -> meta.displayName(Component.empty()));
+            for (int slot = 0; slot < inventory.getSize(); slot++) inventory.setItem(slot, filler);
+            ItemStack sample = new ItemStack(allowed == null ? Material.HOPPER : allowed);
+            sample.editMeta(meta -> {
+                meta.displayName(Component.text("Allow this one item only", NamedTextColor.GOLD));
                 meta.lore(java.util.List.of(
-                        Component.text("Click a slot with an item to allow its type."),
-                        Component.text("Right-click a slot to clear it."),
-                        Component.text("An empty filter accepts everything.")));
+                        Component.text(allowed == null ? "Currently accepts everything." : "Allowed: " + allowed.name()),
+                        Component.text("Click with an item to set the filter."),
+                        Component.text("Right-click to clear it.")));
             });
-            inventory.setItem(FILTER_SLOTS, info);
+            inventory.setItem(FILTER_SLOT, sample);
         }
     }
 }
