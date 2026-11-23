@@ -60,7 +60,6 @@ public final class Bullshitadditions extends JavaPlugin {
         energyCondenser = new EnergyCondenser(this);
         BlockMachines blockMachines = new BlockMachines(this);
         getServer().getPluginManager().registerEvents(blockMachines, this);
-        getServer().getPluginManager().registerEvents(new HopperFilters(this), this);
         blockMachines.start();
         upper = new Upper(this);
         getServer().getPluginManager().registerEvents(upper, this);
