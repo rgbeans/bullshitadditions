@@ -76,6 +76,12 @@ Craft it with a hopper in the center, copper ingots directly above and on each s
 
 The Transmutation Table can learn and recreate the Upper, Block Breaker, and Block Placer at their crafting ingredient EMC cost.
 
+## Hopper Filters
+
+Sneak + right-click any vanilla hopper with an empty hand to open its filter. Click a slot with an item on the cursor to allow that item type. The item stays on your cursor. Right-click a filter slot to clear it. Clear every slot to accept all items again.
+
+The filter matches item types for automatic transfers and ground-item pickups. You can still open the hopper normally to manage its inventory. Filters stay on the placed hopper across restarts.
+
 ## Commands
 | Command | Permission | Default |
 |---|---|---|
